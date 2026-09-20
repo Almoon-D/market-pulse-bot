@@ -1,0 +1,5 @@
+pydantic>=2.5
+pydantic-settings>=2.1
+pyyaml>=6.0
+httpx>=0.26
+exchange-calendars>=4.5
