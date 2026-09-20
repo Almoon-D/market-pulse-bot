@@ -1,0 +1,22 @@
+[Unit]
+Description=Global Market Operations Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=market-monitor
+Group=market-monitor
+WorkingDirectory=/opt/market-monitor
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/market-monitor/.venv/bin/python3.14 /opt/market-monitor/main.py --loop --config /opt/market-monitor/config/config.yaml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/market-monitor/data
+
+[Install]
+WantedBy=multi-user.target

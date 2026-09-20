@@ -1,0 +1,76 @@
+exchanges:
+  - name: "NYSE"
+    mic: "XNYS"
+    calendar_type: "exchange_calendars"
+    timezone: "America/New_York"
+    tz_label: "ET"
+    country_flag: "🇺🇸"
+    currency: "USD"
+    region: "America"
+    session_offsets:
+      pre_market_minutes: 330
+      opening_auction_minutes: 0
+      closing_auction_minutes: 10
+      post_market_minutes: 240
+    incident_source:
+      type: "structured_feed"
+      url: "https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts"
+      scope: "single_stock"
+
+  - name: "Madrid Stock Exchange"
+    mic: "XMAD"
+    calendar_type: "exchange_calendars"
+    timezone: "Europe/Madrid"
+    tz_label: "CET/CEST"
+    country_flag: "🇪🇸"
+    currency: "EUR"
+    region: "Europe"
+    session_offsets:
+      pre_market_minutes: 30
+      opening_auction_minutes: 5
+      closing_auction_minutes: 5
+      post_market_minutes: 0
+    incident_source:
+      type: "manual"
+      scope: "market_wide"
+
+  - name: "Tokyo Stock Exchange"
+    mic: "XTKS"
+    calendar_type: "exchange_calendars"
+    timezone: "Asia/Tokyo"
+    tz_label: "JST"
+    country_flag: "🇯🇵"
+    currency: "JPY"
+    region: "Asia"
+    session_offsets:
+      pre_market_minutes: 0
+      opening_auction_minutes: 15
+      closing_auction_minutes: 5
+      post_market_minutes: 0
+    lunch:
+      start: "11:30"
+      end: "12:30"
+    incident_source:
+      type: "manual"
+      scope: "market_wide"
+
+  - name: "South Pacific Stock Exchange"
+    mic: "XSPX"
+    calendar_type: "synthetic"
+    timezone: "Pacific/Fiji"
+    tz_label: "FJT"
+    country_flag: "🇫🇯"
+    currency: "FJD"
+    region: "Oceania"
+    synthetic_schedule:
+      open: "10:00"
+      close: "12:00"
+      trading_days: ["mon", "tue", "wed", "thu", "fri"]
+    session_offsets:
+      pre_market_minutes: 0
+      opening_auction_minutes: 0
+      closing_auction_minutes: 0
+      post_market_minutes: 0
+    incident_source:
+      type: "manual"
+      scope: "market_wide"
