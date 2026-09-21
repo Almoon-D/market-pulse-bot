@@ -1,0 +1,10 @@
+.env
+data/state.json
+data/state.json.tmp
+data/manual_incidents.yaml
+data/cron.log
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/

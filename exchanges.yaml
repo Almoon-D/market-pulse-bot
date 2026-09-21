@@ -1,0 +1,82 @@
+# The 4 fully-worked anchor exchanges (Section 6). Run
+#   python main.py init-config
+# to additively scaffold the other 20 (TSX, B3, LSE, Xetra, Euronext x3, SIX,
+# HKEX, SSE, SZSE, BSE, NSE India, KRX, TWSE, SGX, ASX, Cboe Australia, Chi-X, NZX).
+exchanges:
+- name: NYSE
+  mic: XNYS
+  calendar_type: exchange_calendars
+  timezone: America/New_York
+  tz_label: ET
+  country_flag: 🇺🇸
+  currency: USD
+  region: America
+  session_offsets:
+    pre_market_minutes: 330
+    opening_auction_minutes: 0
+    closing_auction_minutes: 10
+    post_market_minutes: 240
+  incident_source:
+    type: structured_feed
+    url: https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts
+    scope: single_stock
+- name: Bolsa de Madrid
+  mic: XMAD
+  calendar_type: exchange_calendars
+  timezone: Europe/Madrid
+  tz_label: CET/CEST
+  country_flag: 🇪🇸
+  currency: EUR
+  region: Europe
+  session_offsets:
+    pre_market_minutes: 0
+    opening_auction_minutes: 5
+    closing_auction_minutes: 5
+    post_market_minutes: 0
+  incident_source:
+    type: manual
+    scope: market_wide
+- name: Tokyo Stock Exchange
+  mic: XTKS
+  calendar_type: exchange_calendars
+  timezone: Asia/Tokyo
+  tz_label: JST
+  country_flag: 🇯🇵
+  currency: JPY
+  region: Asia
+  session_offsets:
+    pre_market_minutes: 0
+    opening_auction_minutes: 5
+    closing_auction_minutes: 5
+    post_market_minutes: 0
+  incident_source:
+    type: manual
+    scope: market_wide
+- name: South Pacific Stock Exchange
+  mic: XSPX
+  calendar_type: synthetic
+  timezone: Pacific/Fiji
+  tz_label: FJT
+  country_flag: 🇫🇯
+  currency: FJD
+  region: Oceania
+  session_offsets:
+    pre_market_minutes: 0
+    opening_auction_minutes: 0
+    closing_auction_minutes: 0
+    post_market_minutes: 0
+  incident_source:
+    type: manual
+    scope: market_wide
+  synthetic:
+    open_time: '10:00'
+    close_time: '12:00'
+    lunch_start: null
+    lunch_end: null
+    trading_days:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    holidays: []
