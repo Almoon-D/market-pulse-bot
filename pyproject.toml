@@ -1,0 +1,51 @@
+[project]
+name = "mercados"
+version = "1.0.0"
+description = "Tracks the real-time operational status of global stock exchanges and detects unscheduled market-wide closures, publishing to Discord, Slack, or Telegram."
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.14"
+authors = [
+    { name = "Your name here" },
+]
+keywords = ["stock-exchanges", "market-status", "trading-calendar", "discord", "slack", "telegram"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Office/Business :: Financial",
+]
+
+dependencies = [
+    "pydantic>=2.12",
+    "pydantic-settings>=2.14",
+    "exchange_calendars>=4.13.2",
+    "httpx>=0.28",
+    "PyYAML>=6.0",
+]
+
+[project.urls]
+Homepage = "https://example.invalid/mercados"
+
+[project.scripts]
+mercados = "main:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
+packages = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["locales/*.yaml", "config/*.yaml"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.mypy]
+python_version = "3.14"
+strict = true

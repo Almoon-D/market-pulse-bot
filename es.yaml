@@ -1,0 +1,57 @@
+phase:
+  closed: "Cerrado"
+  holiday: "Festivo"
+  regular: "Sesión regular"
+  lunch: "Pausa de mediodía"
+  pre_market: "Pre-mercado"
+  post_market: "Post-mercado"
+  opening_auction: "Subasta de apertura"
+  closing_auction: "Subasta de cierre"
+  regulatory_halt: "Suspensión regulatoria"
+  technical_halt: "Interrupción técnica"
+  exceptional_closure: "Cierre excepcional del mercado"
+  post_halt_reopening: "Reapertura tras suspensión"
+
+transition:
+  to_pre_market: "Pre-market en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_opening_auction: "Subasta de apertura en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_regular_after_auction: "Sesión regular en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_lunch: "Pausa de mediodía en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_regular_after_lunch: "Reapertura tras la pausa en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_closing_auction: "Subasta de cierre en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_post_market: "Post-mercado en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_closed: "Cierre en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_regular_direct: "Apertura en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_post_halt_reopening: "Reapertura prevista en {minutes} minutos, a las {time} ({native_time} {tz_label})"
+  to_regular_uncertain: "Reapertura en curso — ≥5 min, posible extensión"
+
+annotation:
+  early_close_day: "media jornada"
+
+header:
+  events_title: "📅 Próximos eventos y festivos (5 días hábiles)"
+  dashboard_americas_eu_title: "🌎 Panel en vivo — América y Europa"
+  dashboard_asia_oceania_title: "🌏 Panel en vivo — Asia y Oceanía"
+
+region:
+  america: "América"
+  europe: "Europa"
+  asia: "Asia"
+  oceania: "Oceanía"
+
+events:
+  no_events: "Sin festivos ni cierres anticipados en los próximos 5 días hábiles."
+  holiday_line: "{flag} {name} — Festivo ({date})"
+  early_close_line: "{flag} {name} — Cierre anticipado ({date}), a las {time} ({native_time} {tz_label})"
+
+weekday:
+  mon: "lun"
+  tue: "mar"
+  wed: "mié"
+  thu: "jue"
+  fri: "vie"
+  sat: "sáb"
+  sun: "dom"
+
+footer:
+  generated_at: "Actualizado: {time}"

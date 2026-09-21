@@ -1,0 +1,57 @@
+phase:
+  closed: "Geschlossen"
+  holiday: "Feiertag"
+  regular: "Reguläre Sitzung"
+  lunch: "Mittagspause"
+  pre_market: "Vorbörslicher Handel"
+  post_market: "Nachbörslicher Handel"
+  opening_auction: "Eröffnungsauktion"
+  closing_auction: "Schlussauktion"
+  regulatory_halt: "Regulatorische Aussetzung"
+  technical_halt: "Technische Unterbrechung"
+  exceptional_closure: "Außerordentliche Marktschließung"
+  post_halt_reopening: "Wiedereröffnung nach Aussetzung"
+
+transition:
+  to_pre_market: "Vorbörslicher Handel in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_opening_auction: "Eröffnungsauktion in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_regular_after_auction: "Reguläre Sitzung in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_lunch: "Mittagspause in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_regular_after_lunch: "Wiedereröffnung nach der Pause in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_closing_auction: "Schlussauktion in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_post_market: "Nachbörslicher Handel in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_closed: "Schließung in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_regular_direct: "Eröffnung in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_post_halt_reopening: "Wiedereröffnung voraussichtlich in {minutes} Minuten, um {time} ({native_time} {tz_label})"
+  to_regular_uncertain: "Wiedereröffnung läuft — ≥5 Min., mögliche Verlängerung"
+
+annotation:
+  early_close_day: "verkürzter Handelstag"
+
+header:
+  events_title: "📅 Bevorstehende Ereignisse & Feiertage (5 Handelstage)"
+  dashboard_americas_eu_title: "🌎 Live-Übersicht — Amerika & Europa"
+  dashboard_asia_oceania_title: "🌏 Live-Übersicht — Asien & Ozeanien"
+
+region:
+  america: "Amerika"
+  europe: "Europa"
+  asia: "Asien"
+  oceania: "Ozeanien"
+
+events:
+  no_events: "Keine Feiertage oder verkürzten Handelstage in den nächsten 5 Handelstagen."
+  holiday_line: "{flag} {name} — Feiertag ({date})"
+  early_close_line: "{flag} {name} — Verkürzter Handelstag ({date}), um {time} ({native_time} {tz_label})"
+
+weekday:
+  mon: "Mo"
+  tue: "Di"
+  wed: "Mi"
+  thu: "Do"
+  fri: "Fr"
+  sat: "Sa"
+  sun: "So"
+
+footer:
+  generated_at: "Aktualisiert: {time}"
