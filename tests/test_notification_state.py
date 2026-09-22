@@ -1,7 +1,14 @@
 import asyncio
 from pathlib import Path
 
-from market_pulse_bot.notification_backend import DiscordRef, MessageNotFoundError, NotificationBackend, StateFile, StateStore, publish_or_update
+from market_pulse_bot.notification_backend import (
+    DiscordRef,
+    MessageNotFoundError,
+    NotificationBackend,
+    StateFile,
+    StateStore,
+    publish_or_update,
+)
 from market_pulse_bot.text_formatter import MessagePayload
 
 
