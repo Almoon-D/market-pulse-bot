@@ -7,7 +7,6 @@ exchanges:
     country_flag: 🇺🇸
     currency: USD
     region: America
-    session_offsets: {pre_market_minutes: 180, opening_auction_minutes: 0, closing_auction_minutes: 0, post_market_minutes: 240}
     phase_windows:
       - {phase: pre_market, anchor: session_open, start_offset_minutes: -180, end_offset_minutes: 0}
       - {phase: post_market, anchor: session_close, start_offset_minutes: 0, end_offset_minutes: 240}
@@ -24,7 +23,6 @@ exchanges:
     country_flag: 🇪🇸
     currency: EUR
     region: Europe
-    session_offsets: {pre_market_minutes: 0, opening_auction_minutes: 30, closing_auction_minutes: 5, post_market_minutes: 10}
     phase_windows:
       - {phase: opening_auction, anchor: session_open, start_offset_minutes: -30, end_offset_minutes: 0}
       - {phase: closing_auction, anchor: session_close, start_offset_minutes: 0, end_offset_minutes: 5}
@@ -41,7 +39,6 @@ exchanges:
     country_flag: 🇯🇵
     currency: JPY
     region: Asia
-    session_offsets: {pre_market_minutes: 60, opening_auction_minutes: 60, closing_auction_minutes: 5, post_market_minutes: 0}
     phase_windows:
       - {phase: opening_auction, anchor: session_open, start_offset_minutes: -60, end_offset_minutes: 0}
       - {phase: closing_auction, anchor: session_close, start_offset_minutes: -5, end_offset_minutes: 0}
@@ -57,7 +54,6 @@ exchanges:
     country_flag: 🇫🇯
     currency: FJD
     region: Oceania
-    session_offsets: {pre_market_minutes: 0, opening_auction_minutes: 0, closing_auction_minutes: 0, post_market_minutes: 0}
     phase_windows: []
     incident_source: {type: manual, scope: market_wide}
     synthetic:
@@ -105,7 +101,7 @@ exchanges:
   - {name: Taiwan Stock Exchange, mic: XTAI, calendar_type: exchange_calendars, timezone: Asia/Taipei, tz_label: CST, country_flag: 🇹🇼, currency: TWD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
   - {name: Singapore Exchange, mic: XSES, calendar_type: exchange_calendars, timezone: Asia/Singapore, tz_label: SGT, country_flag: 🇸🇬, currency: SGD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
   - {name: Australian Securities Exchange, mic: XASX, calendar_type: exchange_calendars, timezone: Australia/Sydney, tz_label: AEST/AEDT, country_flag: 🇦🇺, currency: AUD, region: Oceania, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
-  - name: Cboe Australia
+  - name: TMX Australia Exchange
     mic: CHIA
     calendar_type: synthetic
     timezone: Australia/Sydney
