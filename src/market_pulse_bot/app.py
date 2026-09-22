@@ -35,7 +35,7 @@ async def render_tick(
     state: StateFile,
     loop_mode: bool,
 ) -> tuple[StateFile, int]:
-    now_utc = dt.datetime.now(dt.timezone.utc)
+    now_utc = dt.datetime.now(dt.UTC)
     incidents = await incident_store.get_all()
     states: dict[str, PhaseState] = {
         exchange.mic: compute_phase_state(
@@ -109,7 +109,7 @@ async def async_run(args: argparse.Namespace) -> int:
                 )
                 try:
                     await asyncio.wait_for(stop_event.wait(), timeout=args.interval)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass
         finally:
             stop_event.set()
