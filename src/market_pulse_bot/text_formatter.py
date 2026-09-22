@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from .config import Backend, ExchangeConfig
 from .i18n import I18n
@@ -32,8 +32,8 @@ class PayloadTooLargeError(RuntimeError):
 class MessagePayload:
     kind: MessageKind
     plain_text: str
-    slack_blocks: list[dict[str, object]]
-    discord_embed: dict[str, object] | None
+    slack_blocks: list[dict[str, Any]]
+    discord_embed: dict[str, Any] | None
 
 
 PHASE_EMOJI = {
@@ -144,7 +144,7 @@ def _footer(now_utc: dt.datetime, display_tz: dt.tzinfo, i18n: I18n) -> str:
     )
 
 
-def _slack_blocks(text: str) -> list[dict[str, object]]:
+def _slack_blocks(text: str) -> list[dict[str, Any]]:
     chunks: list[str] = []
     current: list[str] = []
     length = 0
@@ -166,7 +166,7 @@ def _slack_blocks(text: str) -> list[dict[str, object]]:
     return [{"type": "section", "text": {"type": "mrkdwn", "text": chunk}} for chunk in chunks]
 
 
-def _discord_total(embed: dict[str, object]) -> int:
+def _discord_total(embed: dict[str, Any]) -> int:
     total = len(str(embed.get("title", ""))) + len(str(embed.get("description", "")))
     for field in embed.get("fields", []) or []:
         total += len(str(field.get("name", ""))) + len(str(field.get("value", "")))
@@ -200,7 +200,7 @@ def _split_field(label: str, lines: list[str]) -> list[tuple[str, str]]:
     ]
 
 
-def _validate_discord_embed(embed: dict[str, object]) -> None:
+def _validate_discord_embed(embed: dict[str, Any]) -> None:
     if len(str(embed.get("title", ""))) > DISCORD_TITLE_LIMIT:
         raise PayloadTooLargeError("Discord embed title exceeds 256 characters")
     if len(str(embed.get("description", ""))) > DISCORD_DESCRIPTION_LIMIT:
