@@ -159,7 +159,11 @@ async def run_incident_check_once(
     manual = load_manual_incidents(manual_incidents_path)
     existing = await store.get_all()
 
+    known_mics = {exchange.mic for exchange in exchanges}
     for record in manual.values():
+        if record.mic not in known_mics:
+            logger.error("manual incident references unknown MIC %s; ignoring it", record.mic)
+            continue
         await store.set(record)
 
     for mic, record in existing.items():
