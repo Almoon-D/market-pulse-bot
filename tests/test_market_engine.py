@@ -7,7 +7,7 @@ from market_pulse_bot.config import load_exchanges
 from market_pulse_bot.market_engine import Phase, TransitionKind, compute_phase_state
 
 
-UTC = dt.timezone.utc
+UTC = dt.UTC
 
 
 def _configs():
