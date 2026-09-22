@@ -258,7 +258,12 @@ async def publish_or_update(
     payload: MessagePayload,
 ) -> StateFile:
     existing = getattr(state, slot)
-    if existing is None:
+    if existing is None or existing.backend != state.backend:
+        if existing is not None:
+            logger.warning(
+                "%s has reference backend=%s while configured backend=%s; recreating only this slot",
+                slot, existing.backend, state.backend,
+            )
         reference = await backend.publish(payload)
     else:
         try:
