@@ -60,7 +60,7 @@ class IncidentStore:
 def _parse_datetime(value: Any) -> dt.datetime | None:
     if value in (None, ""):
         return None
-    parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    parsed = dt.datetime.fromisoformat(str(value))
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=dt.UTC)
     return parsed.astimezone(dt.UTC)
