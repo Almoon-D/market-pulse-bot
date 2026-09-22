@@ -62,9 +62,9 @@ class IncidentSourceConfig(BaseModel):
 
 class SyntheticCalendarConfig(BaseModel):
     open_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
-    close_time: str = Field(pattern=r"^([01]d|2[0-3]):[0-5]d$")
-    lunch_start: str | None = Field(default=None, pattern=r"^([01]d|2[0-3]):[0-5]d$")
-    lunch_end: str | None = Field(default=None, pattern=r"^([01]d|2[0-3]):[0-5]d$")
+    close_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    lunch_start: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    lunch_end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     trading_days: list[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4])
     holidays: list[str] = Field(default_factory=list)
 
