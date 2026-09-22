@@ -148,14 +148,19 @@ def _slack_blocks(text: str) -> list[dict[str, object]]:
     chunks: list[str] = []
     current: list[str] = []
     length = 0
-    for line in text.split("\n"):
-        projected = length + len(line) + (1 if current else 0)
-        if current and projected > SLACK_BLOCK_TEXT_LIMIT:
-            chunks.append("\n".join(current))
-            current = []
-            length = 0
-        current.append(line)
-        length += len(line) + (1 if len(current) > 1 else 0)
+    for raw_line in text.split("\n"):
+        line_parts = [
+            raw_line[index:index + SLACK_BLOCK_TEXT_LIMIT]
+            for index in range(0, len(raw_line) or 1, SLACK_BLOCK_TEXT_LIMIT)
+        ]
+        for line in line_parts:
+            projected = length + len(line) + (1 if current else 0)
+            if current and projected > SLACK_BLOCK_TEXT_LIMIT:
+                chunks.append("\n".join(current))
+                current = []
+                length = 0
+            current.append(line)
+            length += len(line) + (1 if len(current) > 1 else 0)
     if current:
         chunks.append("\n".join(current))
     return [{"type": "section", "text": {"type": "mrkdwn", "text": chunk}} for chunk in chunks]
