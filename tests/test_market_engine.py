@@ -66,3 +66,10 @@ def test_two_minute_auction_threshold() -> None:
     assert state.current_phase == Phase.AUCTION
     assert state.minutes_until == 2
     assert state.show_transition is True
+
+
+
+def test_nyse_known_early_close_is_detected() -> None:
+    cfg = _configs()["XNYS"]
+    schedule = build_schedule(cfg)
+    assert schedule.is_early_close(dt.date(2026, 11, 27)) is True
