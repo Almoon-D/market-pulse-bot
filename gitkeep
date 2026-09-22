@@ -1,9 +1,0 @@
-# This file exists only so git tracks the otherwise-empty data/ directory.
-#
-# At runtime this directory holds:
-#   - state.json              generated automatically (atomic write); the
-#                              three-slot message-ref record (Section 5)
-#   - manual_incidents.yaml   operator-maintained (Section 6); absent by
-#                              default, meaning "no manual overrides"
-#
-# Neither of the above should be committed — see .gitignore.
