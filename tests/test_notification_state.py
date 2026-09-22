@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from market_pulse_bot.notification_backend import DiscordRef, MessageNotFoundError, NotificationBackend, StateFile, StateStore, publish_or_update
+from market_pulse_bot.notification_backend import DiscordRef, MessageNotFoundError, NotificationBackend, StateFile, StateStore, TelegramRef, publish_or_update
 from market_pulse_bot.text_formatter import MessagePayload
 
 
@@ -53,14 +53,12 @@ def test_wrong_slot_reference_backend_is_recreated_only_for_that_slot(tmp_path: 
     store = StateStore(path)
     state = StateFile(
         backend="discord",
-        events_message_ref=DiscordRef(backend="discord", message_id="1"),
+        events_message_ref=TelegramRef(backend="telegram", chat_id="-1001", message_id=1),
         dashboard_americas_eu_ref=None,
         dashboard_asia_oceania_ref=None,
     )
-    # Deliberately bypass StateFile validation to model a future/corrupt
-    # state migration that contains an alien backend in one slot.
-    object.__setattr__(state, "events_message_ref", type("ForeignRef", (), {"backend": "telegram"})())
     backend = FakeBackend()
     payload = MessagePayload("events", "x", [], {"title": "x"})
     state = asyncio.run(publish_or_update(backend, store, state, "events_message_ref", payload))
     assert backend.published == 1
+    assert state.events_message_ref.backend == "discord"
