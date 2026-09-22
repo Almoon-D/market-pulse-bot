@@ -17,7 +17,7 @@ def _configs():
 def test_nyse_pre_market_to_regular() -> None:
     cfg = _configs()["XNYS"]
     schedule = build_schedule(cfg)
-    pre = dt.datetime(2026, 9, 22, 9, 20, tzinfo=ZoneInfo("America/New_York"))
+    pre = dt.datetime(2026, 9, 22, 9, 26, tzinfo=ZoneInfo("America/New_York"))
     state = compute_phase_state(cfg, schedule, pre.astimezone(UTC), None, True)
     assert state.current_phase == Phase.EXTENDED_HOURS
     assert state.next_phase == Phase.REGULAR
