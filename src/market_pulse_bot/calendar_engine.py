@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from abc import ABC, abstractmethod
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import exchange_calendars as xc
@@ -51,7 +52,7 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         self._early_close_dates = {value.date() for value in self._calendar.early_closes}
         self.tz = ZoneInfo(timezone)
 
-    def _local(self, value) -> dt.datetime:
+    def _local(self, value: Any) -> dt.datetime:
         return value.to_pydatetime().astimezone(self.tz)
 
     def is_session(self, session: dt.date) -> bool:
