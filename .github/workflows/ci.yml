@@ -25,7 +25,18 @@ jobs:
           fi
       - name: Forbidden glyph scan
         run: |
-          if git grep -n '🟥' -- '*.py' '*.yaml' '*.md' '*.sh' '*.service' '*.toml' '*.txt'; then
-            echo "Forbidden glyph found"
-            exit 1
-          fi
+          python - <<'PY'
+          import subprocess
+          forbidden = chr(0x1F7E5)
+          result = subprocess.run(
+              ["git", "grep", "-n", forbidden, "--", "*.py", "*.yaml", "*.md", "*.sh", "*.service", "*.toml", "*.txt"],
+              text=True,
+              capture_output=True,
+          )
+          if result.returncode == 0:
+              print(result.stdout, end="")
+              raise SystemExit("Forbidden status glyph found")
+          if result.returncode > 1:
+              print(result.stderr, end="")
+              raise SystemExit(result.returncode)
+          PY
