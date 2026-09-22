@@ -79,7 +79,10 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         return self._local(self._calendar.session_break_end(session))
 
     def is_early_close(self, session: dt.date) -> bool:
-        return session in self._calendar.early_closes
+        # exchange_calendars stores early-close labels as session timestamps,
+        # so compare a Timestamp rather than a datetime.date.
+        import pandas as pd
+        return pd.Timestamp(session) in self._calendar.early_closes
 
     def is_normal_business_weekday(self, session: dt.date) -> bool:
         return self._calendar.weekmask[session.weekday()] == "1"
