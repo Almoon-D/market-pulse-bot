@@ -27,7 +27,7 @@ class PhaseWindowConfig(BaseModel):
     end_offset_minutes: int
 
     @model_validator(mode="after")
-    def validate_window(self) -> "PhaseWindowConfig":
+    def validate_window(self) -> PhaseWindowConfig:
         if self.end_offset_minutes <= self.start_offset_minutes:
             raise ValueError(f"{self.phase}: end offset must be greater than start offset")
         expected_anchor = "session_open" if self.phase in {"pre_market", "opening_auction"} else "session_close"
@@ -52,7 +52,7 @@ class IncidentSourceConfig(BaseModel):
     field_map: dict[str, str] | None = None
 
     @model_validator(mode="after")
-    def validate_source(self) -> "IncidentSourceConfig":
+    def validate_source(self) -> IncidentSourceConfig:
         if self.type in {"structured_feed", "rss_keyword"} and not self.url:
             raise ValueError(f"{self.type} requires a URL")
         if self.scope == "market_wide" and self.type == "rss_keyword":
@@ -76,7 +76,7 @@ class SyntheticCalendarConfig(BaseModel):
         return sorted(set(value))
 
     @model_validator(mode="after")
-    def valid_lunch(self) -> "SyntheticCalendarConfig":
+    def valid_lunch(self) -> SyntheticCalendarConfig:
         if bool(self.lunch_start) != bool(self.lunch_end):
             raise ValueError("lunch_start and lunch_end must be both set or both null")
         return self
@@ -115,7 +115,7 @@ class ExchangeConfig(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def cross_field_checks(self) -> "ExchangeConfig":
+    def cross_field_checks(self) -> ExchangeConfig:
         if self.calendar_type == "synthetic" and self.synthetic is None:
             raise ValueError(f"{self.mic}: synthetic calendar requires synthetic block")
         if self.calendar_type == "exchange_calendars" and self.synthetic is not None:
@@ -130,7 +130,7 @@ class ExchangeRoster(BaseModel):
     exchanges: list[ExchangeConfig]
 
     @model_validator(mode="after")
-    def unique_mics(self) -> "ExchangeRoster":
+    def unique_mics(self) -> ExchangeRoster:
         mics = [exchange.mic for exchange in self.exchanges]
         duplicates = sorted({mic for mic in mics if mics.count(mic) > 1})
         if duplicates:
@@ -169,7 +169,7 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def validate_backend_credentials(self) -> "Settings":
+    def validate_backend_credentials(self) -> Settings:
         if self.notification_backend == "discord" and not self.discord_webhook_url:
             raise ValueError("Discord backend requires MERCADOS_DISCORD_WEBHOOK_URL")
         if self.notification_backend == "slack" and not (self.slack_bot_token and self.slack_channel):
