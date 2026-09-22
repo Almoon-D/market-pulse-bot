@@ -9,7 +9,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 from urllib.parse import urlsplit
 
 import httpx
@@ -175,7 +175,7 @@ class SlackBackend(NotificationBackend):
             json=body,
         )
         response.raise_for_status()
-        data = response.json()
+        data = cast(dict[str, object], response.json())
         if not data.get("ok"):
             raise RuntimeError(f"Slack {method} failed: {data.get('error', 'unknown_error')}")
         return data
@@ -209,7 +209,7 @@ class TelegramBackend(NotificationBackend):
     async def _call(self, method: str, body: dict[str, object]) -> dict[str, object] | None:
         response = await request_with_backoff(self._client, "POST", f"{self._base}/{method}", json=body)
         try:
-            data = response.json()
+            data = cast(dict[str, object], response.json())
         except ValueError:
             response.raise_for_status()
             raise RuntimeError(f"Telegram {method} returned invalid JSON")
