@@ -227,7 +227,13 @@ def _validate_text_limits(text: str, backend: Backend, kind: str) -> None:
         raise PayloadTooLargeError(f"{kind} exceeds conservative Slack text budget")
 
 
-def build_events_payload(events, now_utc, display_tz, i18n, backend) -> MessagePayload:
+def build_events_payload(
+    events: list[UpcomingEvent],
+    now_utc: dt.datetime,
+    display_tz: dt.tzinfo,
+    i18n: I18n,
+    backend: Backend,
+) -> MessagePayload:
     title = i18n.t("header.events_title")
     lines = [render_event_line(event, display_tz, i18n) for event in events]
     body = "\n".join(lines) if lines else i18n.t("events.no_events")
@@ -285,14 +291,14 @@ def build_dashboard_payload(
 
 
 def build_all_payloads(
-    exchanges,
-    phase_states,
-    upcoming_events,
-    now_utc,
-    display_tz,
-    i18n,
-    backend,
-):
+    exchanges: list[ExchangeConfig],
+    phase_states: dict[str, PhaseState],
+    upcoming_events: list[UpcomingEvent],
+    now_utc: dt.datetime,
+    display_tz: dt.tzinfo,
+    i18n: I18n,
+    backend: Backend,
+) -> tuple[MessagePayload, MessagePayload, MessagePayload]:
     lines = {region: [] for region in ("America", "Europe", "Asia", "Oceania")}
     for exchange in exchanges:
         lines[exchange.region].append(render_exchange_line(exchange, phase_states[exchange.mic], i18n, display_tz))
