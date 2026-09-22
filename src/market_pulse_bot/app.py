@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from .calendar_engine import MarketSchedule, build_schedule
-from .config import Settings, load_exchanges, scaffold_config, validate_exchange_calendars
+from .config import ExchangeConfig, Settings, load_exchanges, scaffold_config, validate_exchange_calendars
 from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_check_once
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
@@ -24,7 +24,7 @@ logger = logging.getLogger("market_pulse_bot")
 
 
 async def render_tick(
-    exchanges,
+    exchanges: list[ExchangeConfig],
     schedules: dict[str, MarketSchedule],
     incident_store: IncidentStore,
     i18n: I18n,
