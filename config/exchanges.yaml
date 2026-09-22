@@ -1,0 +1,120 @@
+exchanges:
+  - name: NYSE
+    mic: XNYS
+    calendar_type: exchange_calendars
+    timezone: America/New_York
+    tz_label: ET
+    country_flag: 🇺🇸
+    currency: USD
+    region: America
+    session_offsets: {pre_market_minutes: 180, opening_auction_minutes: 0, closing_auction_minutes: 0, post_market_minutes: 240}
+    phase_windows:
+      - {phase: pre_market, anchor: session_open, start_offset_minutes: -180, end_offset_minutes: 0}
+      - {phase: post_market, anchor: session_close, start_offset_minutes: 0, end_offset_minutes: 240}
+    incident_source:
+      type: structured_feed
+      url: https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts
+      scope: single_stock
+
+  - name: Bolsa de Madrid
+    mic: XMAD
+    calendar_type: exchange_calendars
+    timezone: Europe/Madrid
+    tz_label: CET/CEST
+    country_flag: 🇪🇸
+    currency: EUR
+    region: Europe
+    session_offsets: {pre_market_minutes: 0, opening_auction_minutes: 30, closing_auction_minutes: 5, post_market_minutes: 10}
+    phase_windows:
+      - {phase: opening_auction, anchor: session_open, start_offset_minutes: -30, end_offset_minutes: 0}
+      - {phase: closing_auction, anchor: session_close, start_offset_minutes: 0, end_offset_minutes: 5}
+      - {phase: post_market, anchor: session_close, start_offset_minutes: 5, end_offset_minutes: 15}
+    incident_source:
+      type: manual
+      scope: market_wide
+
+  - name: Tokyo Stock Exchange
+    mic: XTKS
+    calendar_type: exchange_calendars
+    timezone: Asia/Tokyo
+    tz_label: JST
+    country_flag: 🇯🇵
+    currency: JPY
+    region: Asia
+    session_offsets: {pre_market_minutes: 60, opening_auction_minutes: 60, closing_auction_minutes: 5, post_market_minutes: 0}
+    phase_windows:
+      - {phase: opening_auction, anchor: session_open, start_offset_minutes: -60, end_offset_minutes: 0}
+      - {phase: closing_auction, anchor: session_close, start_offset_minutes: -5, end_offset_minutes: 0}
+    incident_source:
+      type: manual
+      scope: market_wide
+
+  - name: South Pacific Stock Exchange
+    mic: XSPX
+    calendar_type: synthetic
+    timezone: Pacific/Fiji
+    tz_label: FJT
+    country_flag: 🇫🇯
+    currency: FJD
+    region: Oceania
+    session_offsets: {pre_market_minutes: 0, opening_auction_minutes: 0, closing_auction_minutes: 0, post_market_minutes: 0}
+    phase_windows: []
+    incident_source: {type: manual, scope: market_wide}
+    synthetic:
+      open_time: "10:00"
+      close_time: "12:00"
+      lunch_start: null
+      lunch_end: null
+      trading_days: [0, 1, 2, 3, 4]
+      holidays: []
+
+  - {name: Toronto Stock Exchange, mic: XTSE, calendar_type: exchange_calendars, timezone: America/Toronto, tz_label: ET, country_flag: 🇨🇦, currency: CAD, region: America, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: B3, mic: BVMF, calendar_type: exchange_calendars, timezone: America/Sao_Paulo, tz_label: BRT, country_flag: 🇧🇷, currency: BRL, region: America, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: London Stock Exchange, mic: XLON, calendar_type: exchange_calendars, timezone: Europe/London, tz_label: GMT/BST, country_flag: 🇬🇧, currency: GBP, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Deutsche Börse Xetra, mic: XETR, calendar_type: exchange_calendars, timezone: Europe/Berlin, tz_label: CET/CEST, country_flag: 🇩🇪, currency: EUR, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Euronext Paris, mic: XPAR, calendar_type: exchange_calendars, timezone: Europe/Paris, tz_label: CET/CEST, country_flag: 🇫🇷, currency: EUR, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Euronext Amsterdam, mic: XAMS, calendar_type: exchange_calendars, timezone: Europe/Amsterdam, tz_label: CET/CEST, country_flag: 🇳🇱, currency: EUR, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Euronext Milan, mic: XMIL, calendar_type: exchange_calendars, timezone: Europe/Rome, tz_label: CET/CEST, country_flag: 🇮🇹, currency: EUR, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: SIX Swiss Exchange, mic: XSWX, calendar_type: exchange_calendars, timezone: Europe/Zurich, tz_label: CET/CEST, country_flag: 🇨🇭, currency: CHF, region: Europe, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Hong Kong Exchange, mic: XHKG, calendar_type: exchange_calendars, timezone: Asia/Hong_Kong, tz_label: HKT, country_flag: 🇭🇰, currency: HKD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Shanghai Stock Exchange, mic: XSHG, calendar_type: exchange_calendars, timezone: Asia/Shanghai, tz_label: CST, country_flag: 🇨🇳, currency: CNY, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - name: Shenzhen Stock Exchange
+    mic: XSHE
+    calendar_type: synthetic
+    timezone: Asia/Shanghai
+    tz_label: CST
+    country_flag: 🇨🇳
+    currency: CNY
+    region: Asia
+    phase_windows: []
+    incident_source: {type: manual, scope: market_wide}
+    synthetic: {open_time: "09:30", close_time: "15:00", lunch_start: "11:30", lunch_end: "13:00", trading_days: [0,1,2,3,4], holidays: []}
+  - {name: BSE India, mic: XBOM, calendar_type: exchange_calendars, timezone: Asia/Kolkata, tz_label: IST, country_flag: 🇮🇳, currency: INR, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - name: National Stock Exchange of India
+    mic: XNSE
+    calendar_type: synthetic
+    timezone: Asia/Kolkata
+    tz_label: IST
+    country_flag: 🇮🇳
+    currency: INR
+    region: Asia
+    phase_windows: []
+    incident_source: {type: manual, scope: market_wide}
+    synthetic: {open_time: "09:15", close_time: "15:30", lunch_start: null, lunch_end: null, trading_days: [0,1,2,3,4], holidays: []}
+  - {name: Korea Exchange, mic: XKRX, calendar_type: exchange_calendars, timezone: Asia/Seoul, tz_label: KST, country_flag: 🇰🇷, currency: KRW, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Taiwan Stock Exchange, mic: XTAI, calendar_type: exchange_calendars, timezone: Asia/Taipei, tz_label: CST, country_flag: 🇹🇼, currency: TWD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Singapore Exchange, mic: XSES, calendar_type: exchange_calendars, timezone: Asia/Singapore, tz_label: SGT, country_flag: 🇸🇬, currency: SGD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Australian Securities Exchange, mic: XASX, calendar_type: exchange_calendars, timezone: Australia/Sydney, tz_label: AEST/AEDT, country_flag: 🇦🇺, currency: AUD, region: Oceania, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - name: Cboe Australia
+    mic: CHIA
+    calendar_type: synthetic
+    timezone: Australia/Sydney
+    tz_label: AEST/AEDT
+    country_flag: 🇦🇺
+    currency: AUD
+    region: Oceania
+    phase_windows: []
+    incident_source: {type: manual, scope: market_wide}
+    synthetic: {open_time: "10:00", close_time: "16:00", lunch_start: null, lunch_end: null, trading_days: [0,1,2,3,4], holidays: []}
+  - {name: New Zealand Exchange, mic: XNZE, calendar_type: exchange_calendars, timezone: Pacific/Auckland, tz_label: NZST/NZDT, country_flag: 🇳🇿, currency: NZD, region: Oceania, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
+  - {name: Nasdaq, mic: XNAS, calendar_type: exchange_calendars, timezone: America/New_York, tz_label: ET, country_flag: 🇺🇸, currency: USD, region: America, phase_windows: [], incident_source: {type: manual, scope: market_wide}}

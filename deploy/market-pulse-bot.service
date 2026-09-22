@@ -1,0 +1,23 @@
+[Unit]
+Description=Market Pulse Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=market-pulse
+Group=market-pulse
+WorkingDirectory=/opt/market-pulse-bot
+EnvironmentFile=/opt/market-pulse-bot/.env
+ExecStart=/opt/market-pulse-bot/.venv/bin/python3.14 main.py --loop --interval 30 --incident-interval 90
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/market-pulse-bot/data
+
+[Install]
+WantedBy=multi-user.target

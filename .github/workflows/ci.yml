@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m compileall -q main.py src tests
+      - run: python -m pytest -q
+      - run: python -m ruff check .
+      - run: python -m mypy src
+      - name: Secret scan
+        run: |
+          if git grep -nE '(xox[baprs]-[A-Za-z0-9-]{20,}|[0-9]{7,}:[A-Za-z0-9_-]{30,}|https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9._-]+)' -- ':!LICENSE'; then
+            echo "Potential credential committed"
+            exit 1
+          fi
+      - name: Forbidden glyph scan
+        run: |
+          if git grep -n '🟥' -- '*.py' '*.yaml' '*.md' '*.sh' '*.service'; then
+            echo "Forbidden glyph found"
+            exit 1
+          fi

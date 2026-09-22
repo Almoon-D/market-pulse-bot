@@ -10,6 +10,7 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
@@ -62,7 +63,7 @@ class StateStore:
             return StateFile.empty(backend)
         try:
             state = StateFile.model_validate_json(self.path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, ValidationError) as exc:
+        except (OSError, UnicodeError, json.JSONDecodeError, ValidationError) as exc:
             logger.warning("invalid state file; starting fresh: %s", exc)
             self._quarantine()
             return StateFile.empty(backend)
@@ -93,12 +94,21 @@ class MessageNotFoundError(RuntimeError):
     pass
 
 
-async def request_with_backoff(client: httpx.AsyncClient, method: str, url: str, *, retries: int = 5, **kwargs) -> httpx.Response:
+async def request_with_backoff(
+    client: httpx.AsyncClient,
+    method: str,
+    url: str,
+    *,
+    retries: int = 5,
+    **kwargs,
+) -> httpx.Response:
     delay = 1.0
     for attempt in range(retries):
         response = await client.request(method, url, **kwargs)
         if response.status_code != 429:
             return response
+        if attempt == retries - 1:
+            break
         raw = response.headers.get("Retry-After")
         try:
             wait = max(0.0, float(raw)) if raw is not None else delay
@@ -120,28 +130,24 @@ class NotificationBackend(ABC):
 
 class DiscordBackend(NotificationBackend):
     def __init__(self, webhook_url: str, client: httpx.AsyncClient) -> None:
+        parsed = urlsplit(webhook_url.rstrip("/"))
+        parts = [part for part in parsed.path.split("/") if part]
+        if parsed.scheme not in {"http", "https"} or len(parts) < 4 or parts[-3] != "webhooks":
+            raise ValueError("Discord webhook URL must contain /api/webhooks/{id}/{token}")
         self._webhook_url = webhook_url.rstrip("/")
-        parts = self._webhook_url.split("/")
-        if len(parts) < 2 or parts[-2] != "webhooks":
-            raise ValueError("Discord webhook URL must end in /webhooks/{id}/{token}")
-        self._webhook_id = parts[-2] if parts[-2] else ""
+        self._webhook_id = parts[-2]
         self._webhook_token = parts[-1]
-        if not self._webhook_id or not self._webhook_token:
-            raise ValueError("Discord webhook URL is malformed")
         self._client = client
 
     async def publish(self, payload: MessagePayload) -> DiscordRef:
         if payload.discord_embed is None:
             raise ValueError("Discord payload missing embed")
         response = await request_with_backoff(
-            self._client,
-            "POST",
-            f"{self._webhook_url}?wait=true",
-            json={"embeds": [payload.discord_embed]},
+            self._client, "POST", f"{self._webhook_url}?wait=true",
+            json={"embeds": [payload.discord_embed]}
         )
         response.raise_for_status()
-        data = response.json()
-        return DiscordRef(backend="discord", message_id=str(data["id"]))
+        return DiscordRef(backend="discord", message_id=str(response.json()["id"]))
 
     async def update(self, reference: DiscordRef, payload: MessagePayload) -> DiscordRef:
         if payload.discord_embed is None:
@@ -164,9 +170,7 @@ class SlackBackend(NotificationBackend):
 
     async def _call(self, method: str, body: dict[str, object]) -> dict[str, object]:
         response = await request_with_backoff(
-            self._client,
-            "POST",
-            f"{self._BASE}/{method}",
+            self._client, "POST", f"{self._BASE}/{method}",
             headers={"Authorization": f"Bearer {self._token}", "Content-Type": "application/json; charset=utf-8"},
             json=body,
         )
@@ -204,12 +208,16 @@ class TelegramBackend(NotificationBackend):
 
     async def _call(self, method: str, body: dict[str, object]) -> dict[str, object] | None:
         response = await request_with_backoff(self._client, "POST", f"{self._base}/{method}", json=body)
-        response.raise_for_status()
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError:
+            response.raise_for_status()
+            raise RuntimeError(f"Telegram {method} returned invalid JSON")
         if not data.get("ok"):
             error = str(data.get("description", "unknown_error"))
             if error.lower().startswith("bad request: message is not modified"):
                 return None
+            response.raise_for_status()
             raise RuntimeError(f"Telegram {method} failed: {error}")
         return data["result"]
 

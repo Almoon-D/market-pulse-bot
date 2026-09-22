@@ -112,10 +112,10 @@ def _custom_intervals(
 ) -> list[_Interval]:
     open_time = schedule.session_open(session)
     close_time = schedule.session_close(session)
-    result: list[_Interval] = []
+    intervals: list[_Interval] = []
     for window in exchange.phase_windows:
         anchor = open_time if window.anchor == "session_open" else close_time
-        result.append(
+        intervals.append(
             _Interval(
                 Phase.EXTENDED_HOURS if window.phase in {"pre_market", "post_market"} else Phase.AUCTION,
                 window.phase,
@@ -123,11 +123,11 @@ def _custom_intervals(
                 anchor + dt.timedelta(minutes=window.end_offset_minutes),
             )
         )
-    result.sort(key=lambda item: (item.start, item.end))
-    for left, right in zip(result, result[1:]):
+    intervals.sort(key=lambda item: (item.start, item.end))
+    for left, right in zip(intervals, intervals[1:]):
         if right.start < left.end:
             raise ValueError(f"{exchange.mic}: configured phase windows overlap")
-    return result
+    return intervals
 
 
 def _session_intervals(
@@ -138,54 +138,36 @@ def _session_intervals(
     open_time = schedule.session_open(session)
     close_time = schedule.session_close(session)
     custom = _custom_intervals(exchange, schedule, session)
-    core: list[_Interval] = []
 
+    base_core: list[_Interval]
     break_start = schedule.session_break_start(session)
     break_end = schedule.session_break_end(session)
     if break_start and break_end:
-        core.extend(
-            [
-                _Interval(Phase.REGULAR, None, open_time, break_start),
-                _Interval(Phase.LUNCH, None, break_start, break_end),
-                _Interval(Phase.REGULAR, None, break_end, close_time),
-            ]
-        )
+        base_core = [
+            _Interval(Phase.REGULAR, None, open_time, break_start),
+            _Interval(Phase.LUNCH, None, break_start, break_end),
+            _Interval(Phase.REGULAR, None, break_end, close_time),
+        ]
     else:
-        core.append(_Interval(Phase.REGULAR, None, open_time, close_time))
+        base_core = [_Interval(Phase.REGULAR, None, open_time, close_time)]
 
-    for block in core:
+    segmented_core: list[_Interval] = []
+    for block in base_core:
         cursor = block.start
         blockers = [item for item in custom if item.start < block.end and item.end > block.start]
         for blocker in sorted(blockers, key=lambda item: item.start):
             if blocker.start > cursor:
-                core_segment_end = min(blocker.start, block.end)
-                if core_segment_end > cursor:
-                    core.append(_Interval(block.phase, block.variant, cursor, core_segment_end))
+                end = min(blocker.start, block.end)
+                if end > cursor:
+                    segmented_core.append(_Interval(block.phase, block.variant, cursor, end))
             cursor = max(cursor, blocker.end)
             if cursor >= block.end:
                 break
         if cursor < block.end:
-            core.append(_Interval(block.phase, block.variant, cursor, block.end))
+            segmented_core.append(_Interval(block.phase, block.variant, cursor, block.end))
 
-    intervals = [
-        item
-        for item in custom
-        if item.end > item.start
-    ] + [
-        item
-        for item in core
-        if item.start < item.end and item not in core[:3 if break_start and break_end else 1]
-    ]
-    intervals.sort(key=lambda item: (item.start, item.end))
-
-    deduped: list[_Interval] = []
-    seen: set[tuple[Phase, str | None, dt.datetime, dt.datetime]] = set()
-    for item in intervals:
-        key = (item.phase, item.variant, item.start, item.end)
-        if key not in seen:
-            seen.add(key)
-            deduped.append(item)
-    return deduped
+    intervals = sorted(custom + segmented_core, key=lambda item: (item.start, item.end))
+    return intervals
 
 
 def _first_phase(
@@ -195,7 +177,7 @@ def _first_phase(
 ) -> tuple[Phase, str | None, dt.datetime, TransitionKind]:
     intervals = _session_intervals(exchange, schedule, session)
     if not intervals:
-        raise RuntimeError(f"{exchange.mic}: session produced no phase intervals")
+        raise RuntimeError(f"{exchange.mic}: session produced no intervals")
     first = intervals[0]
     if first.variant == "pre_market":
         kind = TransitionKind.TO_PRE_MARKET
@@ -244,15 +226,10 @@ def _scheduled_state(
 
     if not schedule.is_session(today):
         current = Phase.HOLIDAY if schedule.is_normal_business_weekday(today) else Phase.CLOSED
-        next_phase, next_variant, next_time, kind = _next_session_transition(
-            exchange, schedule, today + dt.timedelta(days=1)
-        )
+        next_phase, next_variant, next_time, kind = _next_session_transition(exchange, schedule, today + dt.timedelta(days=1))
         return current, None, next_phase, next_variant, next_time, kind
 
     intervals = _session_intervals(exchange, schedule, today)
-    if not intervals:
-        raise RuntimeError(f"{exchange.mic}: no intervals for trading session")
-
     for index, interval in enumerate(intervals):
         if interval.start <= now_local < interval.end:
             if index + 1 < len(intervals):
@@ -272,13 +249,12 @@ def _scheduled_state(
 
     if now_local < intervals[0].start:
         first = intervals[0]
-        kind = (
-            TransitionKind.TO_PRE_MARKET
-            if first.variant == "pre_market"
-            else TransitionKind.TO_OPENING_AUCTION
-            if first.variant == "opening_auction"
-            else TransitionKind.TO_REGULAR_DIRECT
-        )
+        if first.variant == "pre_market":
+            kind = TransitionKind.TO_PRE_MARKET
+        elif first.variant == "opening_auction":
+            kind = TransitionKind.TO_OPENING_AUCTION
+        else:
+            kind = TransitionKind.TO_REGULAR_DIRECT
         return Phase.CLOSED, None, first.phase, first.variant, first.start, kind
 
     next_phase, next_variant, next_time, kind = _next_session_transition(
@@ -364,19 +340,14 @@ def build_upcoming_events(
         while current <= end:
             if schedule.is_normal_business_weekday(current):
                 if not schedule.is_session(current):
-                    result.append(
-                        UpcomingEvent(
-                            exchange.name, exchange.region, exchange.country_flag,
-                            exchange.tz_label, "holiday", current, None
-                        )
-                    )
+                    result.append(UpcomingEvent(
+                        exchange.name, exchange.region, exchange.country_flag,
+                        exchange.tz_label, "holiday", current, None
+                    ))
                 elif schedule.is_early_close(current):
-                    result.append(
-                        UpcomingEvent(
-                            exchange.name, exchange.region, exchange.country_flag,
-                            exchange.tz_label, "early_close", current,
-                            schedule.session_close(current)
-                        )
-                    )
+                    result.append(UpcomingEvent(
+                        exchange.name, exchange.region, exchange.country_flag,
+                        exchange.tz_label, "early_close", current, schedule.session_close(current)
+                    ))
             current += dt.timedelta(days=1)
     return sorted(result, key=lambda event: (event.date, event.region, event.exchange_name))
