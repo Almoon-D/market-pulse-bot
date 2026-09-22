@@ -50,7 +50,7 @@ class StateFile(BaseModel):
     dashboard_asia_oceania_ref: StoredReference | None = None
 
     @classmethod
-    def empty(cls, backend: Backend) -> "StateFile":
+    def empty(cls, backend: Backend) -> StateFile:
         return cls(backend=backend)
 
 
@@ -73,7 +73,7 @@ class StateStore:
         return state
 
     def _quarantine(self) -> None:
-        stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
         target = self.path.with_name(f"{self.path.name}.corrupt-{stamp}")
         try:
             os.replace(self.path, target)
