@@ -32,3 +32,12 @@ def test_init_config_idempotency(tmp_path: Path) -> None:
 
 def test_calendar_mics_validate() -> None:
     validate_exchange_calendars(load_exchanges(Path("config/exchanges.yaml")))
+
+
+
+def test_synthetic_time_format_accepts_valid_clock() -> None:
+    exchanges = {item.mic: item for item in load_exchanges(Path("config/exchanges.yaml"))}
+    synthetic = exchanges["XSPX"].synthetic
+    assert synthetic is not None
+    assert synthetic.open_time == "10:00"
+    assert synthetic.close_time == "12:00"
