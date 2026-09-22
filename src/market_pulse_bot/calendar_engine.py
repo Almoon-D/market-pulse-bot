@@ -48,6 +48,7 @@ class MarketSchedule(ABC):
 class ExchangeCalendarsSchedule(MarketSchedule):
     def __init__(self, mic: str, timezone: str) -> None:
         self._calendar = xc.get_calendar(mic)
+        self._early_close_dates = {value.date() for value in self._calendar.early_closes}
         self.tz = ZoneInfo(timezone)
 
     def _local(self, value) -> dt.datetime:
@@ -79,10 +80,7 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         return self._local(self._calendar.session_break_end(session))
 
     def is_early_close(self, session: dt.date) -> bool:
-        # exchange_calendars stores early-close labels as session timestamps,
-        # so compare a Timestamp rather than a datetime.date.
-        import pandas as pd
-        return pd.Timestamp(session) in self._calendar.early_closes
+        return session in self._early_close_dates
 
     def is_normal_business_weekday(self, session: dt.date) -> bool:
         return self._calendar.weekmask[session.weekday()] == "1"
