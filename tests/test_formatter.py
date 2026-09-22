@@ -10,7 +10,7 @@ from market_pulse_bot.text_formatter import build_all_payloads, render_exchange_
 
 def test_mic_never_rendered() -> None:
     exchange = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNYS")
-    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.timezone.utc)
+    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.UTC)
     state = PhaseState(
         Phase.REGULAR, None, None, None, None, None, None, False, False, False,
         now.astimezone(ZoneInfo(exchange.timezone)),
@@ -22,7 +22,7 @@ def test_mic_never_rendered() -> None:
 
 def test_technical_halt_uses_diamond() -> None:
     exchange = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNYS")
-    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.timezone.utc)
+    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.UTC)
     state = PhaseState(
         Phase.TECHNICAL_HALT, None, None, None, None, None, None, False, False, False,
         now.astimezone(ZoneInfo(exchange.timezone)),
@@ -34,7 +34,7 @@ def test_technical_halt_uses_diamond() -> None:
 
 def test_all_three_payloads_are_built() -> None:
     exchanges = load_exchanges(Path("config/exchanges.yaml"))[:4]
-    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.timezone.utc)
+    now = dt.datetime(2026, 9, 22, 13, 35, tzinfo=dt.UTC)
     states = {
         item.mic: PhaseState(
             Phase.REGULAR, None, None, None, None, None, None, False, False, False,
