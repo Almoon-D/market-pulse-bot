@@ -30,14 +30,18 @@ class PhaseWindowConfig(BaseModel):
     def validate_window(self) -> "PhaseWindowConfig":
         if self.end_offset_minutes <= self.start_offset_minutes:
             raise ValueError(f"{self.phase}: end offset must be greater than start offset")
+        expected_anchor = "session_open" if self.phase in {"pre_market", "opening_auction"} else "session_close"
+        if self.anchor != expected_anchor:
+            raise ValueError(f"{self.phase}: anchor must be {expected_anchor!r}")
+        if self.phase == "pre_market" and self.end_offset_minutes > 0:
+            raise ValueError("pre_market must end no later than the official session open")
+        if self.phase == "opening_auction" and self.end_offset_minutes > 0:
+            raise ValueError("opening_auction must end no later than the official session open")
+        if self.phase == "closing_auction" and self.start_offset_minutes > 0:
+            raise ValueError("closing_auction must start no later than the official session close")
+        if self.phase == "post_market" and self.start_offset_minutes < 0:
+            raise ValueError("post_market must start at or after the official session close")
         return self
-
-
-class SessionOffsets(BaseModel):
-    pre_market_minutes: int = Field(default=0, ge=0)
-    opening_auction_minutes: int = Field(default=0, ge=0)
-    closing_auction_minutes: int = Field(default=0, ge=0)
-    post_market_minutes: int = Field(default=0, ge=0)
 
 
 class IncidentSourceConfig(BaseModel):
@@ -57,7 +61,7 @@ class IncidentSourceConfig(BaseModel):
 
 
 class SyntheticCalendarConfig(BaseModel):
-    open_time: str = Field(pattern=r"^([01]d|2[0-3]):[0-5]d$")
+    open_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     close_time: str = Field(pattern=r"^([01]d|2[0-3]):[0-5]d$")
     lunch_start: str | None = Field(default=None, pattern=r"^([01]d|2[0-3]):[0-5]d$")
     lunch_end: str | None = Field(default=None, pattern=r"^([01]d|2[0-3]):[0-5]d$")
@@ -87,7 +91,6 @@ class ExchangeConfig(BaseModel):
     country_flag: str
     currency: str = Field(min_length=3, max_length=3)
     region: Region
-    session_offsets: SessionOffsets = Field(default_factory=SessionOffsets)
     phase_windows: list[PhaseWindowConfig] = Field(default_factory=list)
     incident_source: IncidentSourceConfig
     synthetic: SyntheticCalendarConfig | None = None
