@@ -274,7 +274,7 @@ def compute_phase_state(
 ) -> PhaseState:
     if now_utc.tzinfo is None:
         raise ValueError("now_utc must be timezone-aware")
-    now_utc = now_utc.astimezone(dt.timezone.utc)
+    now_utc = now_utc.astimezone(dt.UTC)
     now_local = now_utc.astimezone(schedule.tz)
     is_early = schedule.is_session(now_local.date()) and schedule.is_early_close(now_local.date())
 
