@@ -2,27 +2,64 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-      - run: python -m pip install -e ".[dev]"
-      - run: python -m compileall -q main.py src tests
-      - run: python -m pytest -q
-      - run: python -m ruff check .
-      - run: python -m mypy src
-      - name: Secret scan
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Compile
+        run: python -m compileall -q main.py src tests
+
+      - name: Validate project data
         run: |
-          if git grep -nE '(xox[baprs]-[A-Za-z0-9-]{20,}|[0-9]{7,}:[A-Za-z0-9_-]{30,}|https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9._-]+)' -- ':!LICENSE'; then
+          python - <<'PY'
+          from pathlib import Path
+          import tomllib
+          import yaml
+
+          with Path("pyproject.toml").open("rb") as handle:
+              tomllib.load(handle)
+
+          yaml_files = [
+              Path("config/exchanges.yaml"),
+              Path("data/manual_incidents.yaml.example"),
+              *sorted(Path("locales").glob("*.yaml")),
+          ]
+          for path in yaml_files:
+              with path.open(encoding="utf-8") as handle:
+                  yaml.safe_load(handle)
+          print(f"validated {len(yaml_files)} YAML files and pyproject.toml")
+          PY
+
+      - name: Test
+        run: python -m pytest -q
+
+      - name: Ruff
+        run: python -m ruff check .
+
+      - name: Mypy
+        run: python -m mypy src
+
+      - name: Targeted credential scan
+        run: |
+          if git grep -nE '(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|[0-9]{7,}:[A-Za-z0-9_-]{30,}|https://discord(app)?[.]com/api/webhooks/[0-9]+/[A-Za-z0-9._-]+|BEGIN ([A-Z ]+ )?PRIVATE KEY)' -- ':!LICENSE'; then
             echo "Potential credential committed"
             exit 1
           fi
+
       - name: Forbidden glyph scan
         run: |
           python - <<'PY'
