@@ -50,13 +50,12 @@ def test_404_recreates_only_one_slot(tmp_path: Path) -> None:
 
 def test_wrong_slot_reference_backend_is_recreated_only_for_that_slot(tmp_path: Path) -> None:
     path = tmp_path / "state.json"
-    store = StateStore(path)
-    state = StateFile(
-        backend="discord",
-        events_message_ref=TelegramRef(backend="telegram", chat_id="-1001", message_id=1),
-        dashboard_americas_eu_ref=None,
-        dashboard_asia_oceania_ref=None,
+    path.write_text(
+        '{"backend":"discord","events_message_ref":{"backend":"telegram","chat_id":"-1001","message_id":1}}',
+        encoding="utf-8",
     )
+    store = StateStore(path)
+    state = store.load("discord")
     backend = FakeBackend()
     payload = MessagePayload("events", "x", [], {"title": "x"})
     state = asyncio.run(publish_or_update(backend, store, state, "events_message_ref", payload))
