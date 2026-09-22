@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import itertools
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -124,7 +125,7 @@ def _custom_intervals(
             )
         )
     intervals.sort(key=lambda item: (item.start, item.end))
-    for left, right in zip(intervals, intervals[1:]):
+    for left, right in itertools.pairwise(intervals):
         if right.start < left.end:
             raise ValueError(f"{exchange.mic}: configured phase windows overlap")
     return intervals
