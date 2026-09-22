@@ -62,8 +62,8 @@ def _parse_datetime(value: Any) -> dt.datetime | None:
         return None
     parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=dt.timezone.utc)
-    return parsed.astimezone(dt.timezone.utc)
+        parsed = parsed.replace(tzinfo=dt.UTC)
+    return parsed.astimezone(dt.UTC)
 
 
 def load_manual_incidents(path: Path) -> dict[str, IncidentRecord]:
@@ -71,7 +71,7 @@ def load_manual_incidents(path: Path) -> dict[str, IncidentRecord]:
         return {}
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     records: dict[str, IncidentRecord] = {}
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     for entry in raw.get("incidents", []) or []:
         mic = str(entry["mic"]).upper()
         phase = Phase(str(entry["phase"]))
@@ -204,7 +204,7 @@ async def run_incident_check_once(
                     IncidentRecord(
                         mic=exchange.mic,
                         phase=phase,
-                        detected_at=dt.datetime.now(dt.timezone.utc),
+                        detected_at=dt.datetime.now(dt.UTC),
                         source_type="structured_feed",
                         note=note,
                         reopening_time=reopening_time,
@@ -244,5 +244,5 @@ async def run_halt_detector_loop(
             logger.exception("incident detector cycle failed")
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=interval_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
