@@ -203,6 +203,8 @@ def _transition_kind(current: _Interval, target: _Interval) -> TransitionKind:
         return TransitionKind.TO_CLOSING_AUCTION
     if target.variant == "post_market":
         return TransitionKind.TO_POST_MARKET
+    if target.phase == Phase.REGULAR and current.phase == Phase.EXTENDED_HOURS:
+        return TransitionKind.TO_REGULAR_DIRECT
     if target.phase == Phase.CLOSED:
         return TransitionKind.TO_CLOSED
     return TransitionKind.TO_CLOSED
