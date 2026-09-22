@@ -132,7 +132,7 @@ class DiscordBackend(NotificationBackend):
     def __init__(self, webhook_url: str, client: httpx.AsyncClient) -> None:
         parsed = urlsplit(webhook_url.rstrip("/"))
         parts = [part for part in parsed.path.split("/") if part]
-        if parsed.scheme not in {"http", "https"} or len(parts) < 4 or parts[-3] != "webhooks":
+        if parsed.scheme != "https" or parsed.netloc not in {"discord.com", "discordapp.com"} or len(parts) < 4 or parts[-3] != "webhooks":
             raise ValueError("Discord webhook URL must contain /api/webhooks/{id}/{token}")
         self._webhook_url = webhook_url.rstrip("/")
         self._webhook_id = parts[-2]
