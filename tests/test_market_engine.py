@@ -73,3 +73,23 @@ def test_nyse_known_early_close_is_detected() -> None:
     cfg = _configs()["XNYS"]
     schedule = build_schedule(cfg)
     assert schedule.is_early_close(dt.date(2026, 11, 27)) is True
+
+
+
+def test_madrid_closing_auction_occurs_after_continuous_session() -> None:
+    cfg = _configs()["XMAD"]
+    schedule = build_schedule(cfg)
+    at_1732 = dt.datetime(2026, 9, 22, 17, 32, tzinfo=ZoneInfo("Europe/Madrid"))
+    state = compute_phase_state(cfg, schedule, at_1732.astimezone(UTC), None, False)
+    assert state.current_phase == Phase.AUCTION
+    assert state.phase_variant == "closing_auction"
+    assert state.next_phase_variant == "post_market"
+
+
+def test_nyse_post_market_starts_at_official_close() -> None:
+    cfg = _configs()["XNYS"]
+    schedule = build_schedule(cfg)
+    at_1601 = dt.datetime(2026, 9, 22, 16, 1, tzinfo=ZoneInfo("America/New_York"))
+    state = compute_phase_state(cfg, schedule, at_1601.astimezone(UTC), None, False)
+    assert state.current_phase == Phase.EXTENDED_HOURS
+    assert state.phase_variant == "post_market"
