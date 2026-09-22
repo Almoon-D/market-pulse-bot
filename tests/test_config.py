@@ -41,3 +41,10 @@ def test_synthetic_time_format_accepts_valid_clock() -> None:
     assert synthetic is not None
     assert synthetic.open_time == "10:00"
     assert synthetic.close_time == "12:00"
+
+
+
+def test_tmx_australia_uses_current_name_and_operating_mic() -> None:
+    exchanges = {item.mic: item for item in load_exchanges(Path("config/exchanges.yaml"))}
+    assert exchanges["CHIA"].name == "TMX Australia Exchange"
+    assert exchanges["CHIA"].calendar_type == "synthetic"
