@@ -189,12 +189,12 @@ def load_exchanges(path: Path) -> list[ExchangeConfig]:
 def validate_exchange_calendars(exchanges: list[ExchangeConfig]) -> None:
     import exchange_calendars as xc
 
-    canonical = set(xc.get_calendar_names(include_aliases=False))
+    known = set(xc.get_calendar_names())
     for exchange in exchanges:
-        if exchange.calendar_type == "exchange_calendars" and exchange.mic not in canonical:
+        if exchange.calendar_type == "exchange_calendars" and exchange.mic not in known:
             raise ValueError(
-                f"{exchange.mic} is not a canonical exchange_calendars calendar; "
-                "use a supported canonical MIC or a synthetic schedule"
+                f"{exchange.mic} is not a calendar known to exchange_calendars; "
+                "use a supported calendar or a synthetic schedule"
             )
 
 
