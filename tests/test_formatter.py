@@ -29,7 +29,7 @@ def test_technical_halt_uses_diamond() -> None:
     )
     line = render_exchange_line(exchange, state, I18n(Path("locales"), "es"), ZoneInfo("Europe/Madrid"))
     assert "♦️" in line
-    assert "🟥" not in line
+    assert chr(0x1F7E5) not in line
 
 
 def test_all_three_payloads_are_built() -> None:
