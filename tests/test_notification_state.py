@@ -45,3 +45,22 @@ def test_404_recreates_only_one_slot(tmp_path: Path) -> None:
     assert state.events_message_ref.message_id == "11"
     assert state.dashboard_americas_eu_ref.message_id == "2"
     assert state.dashboard_asia_oceania_ref.message_id == "3"
+
+
+
+def test_wrong_slot_reference_backend_is_recreated_only_for_that_slot(tmp_path: Path) -> None:
+    path = tmp_path / "state.json"
+    store = StateStore(path)
+    state = StateFile(
+        backend="discord",
+        events_message_ref=DiscordRef(backend="discord", message_id="1"),
+        dashboard_americas_eu_ref=None,
+        dashboard_asia_oceania_ref=None,
+    )
+    # Deliberately bypass StateFile validation to model a future/corrupt
+    # state migration that contains an alien backend in one slot.
+    object.__setattr__(state, "events_message_ref", type("ForeignRef", (), {"backend": "telegram"})())
+    backend = FakeBackend()
+    payload = MessagePayload("events", "x", [], {"title": "x"})
+    state = asyncio.run(publish_or_update(backend, store, state, "events_message_ref", payload))
+    assert backend.published == 1
