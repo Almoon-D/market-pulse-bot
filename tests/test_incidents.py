@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 
-from market_pulse_bot.config import load_exchanges
+from market_pulse_bot.config import IncidentSourceConfig, load_exchanges
 from market_pulse_bot.halt_detector import IncidentStore, parse_structured_market_wide, run_incident_check_once
 from market_pulse_bot.market_engine import Phase
 
@@ -21,18 +21,22 @@ class FakeClient:
 
 
 def test_rss_keyword_never_changes_state(tmp_path: Path) -> None:
-    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(update={
-        "incident_source": {"type": "rss_keyword", "url": "https://example.invalid/rss", "scope": "single_stock", "keywords": ["market closure"]}
-    })
+    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(
+        update={"incident_source": IncidentSourceConfig(
+            type="rss_keyword", url="https://example.invalid/rss", scope="single_stock", keywords=["market closure"]
+        )}
+    )
     store = IncidentStore()
     asyncio.run(run_incident_check_once([source], tmp_path / "missing.yaml", store, FakeClient("market closure")))
     assert asyncio.run(store.get("XNAS")) is None
 
 
 def test_manual_override_wins(tmp_path: Path) -> None:
-    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(update={
-        "incident_source": {"type": "structured_feed", "url": "https://example.invalid/feed", "scope": "market_wide"}
-    })
+    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(
+        update={"incident_source": IncidentSourceConfig(
+            type="structured_feed", url="https://example.invalid/feed", scope="market_wide"
+        )}
+    )
     manual = tmp_path / "manual.yaml"
     manual.write_text("incidents:\n  - mic: XNAS\n    phase: technical_halt\n", encoding="utf-8")
     content = '{"items":[{"active":true,"phase":"regulatory_halt","note":"feed"}]}'
