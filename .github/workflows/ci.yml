@@ -25,7 +25,7 @@ jobs:
           fi
       - name: Forbidden glyph scan
         run: |
-          if git grep -n '🟥' -- '*.py' '*.yaml' '*.md' '*.sh' '*.service'; then
+          if git grep -n '🟥' -- '*.py' '*.yaml' '*.md' '*.sh' '*.service' '*.toml' '*.txt'; then
             echo "Forbidden glyph found"
             exit 1
           fi
