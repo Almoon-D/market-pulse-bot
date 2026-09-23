@@ -4,9 +4,7 @@ from zoneinfo import ZoneInfo
 
 from market_pulse_bot.calendar_engine import build_schedule
 from market_pulse_bot.config import load_exchanges
-from market_pulse_bot.market_engine import Phase, TransitionKind, compute_phase_state
-
-
+from market_pulse_bot.market_engine import compute_phase_state, Phase, TransitionKind
 
 def _configs():
     return {item.mic: item for item in load_exchanges(Path("config/exchanges.yaml"))}
