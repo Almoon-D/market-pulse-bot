@@ -299,7 +299,7 @@ def build_all_payloads(
     i18n: I18n,
     backend: Backend,
 ) -> tuple[MessagePayload, MessagePayload, MessagePayload]:
-    lines = {region: [] for region in ("America", "Europe", "Asia", "Oceania")}
+    lines: dict[str, list[str]] = {region: [] for region in ("America", "Europe", "Asia", "Oceania")}
     for exchange in exchanges:
         lines[exchange.region].append(render_exchange_line(exchange, phase_states[exchange.mic], i18n, display_tz))
     return (
