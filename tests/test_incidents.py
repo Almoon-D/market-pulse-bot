@@ -21,28 +21,28 @@ class FakeClient:
 
 
 def test_rss_keyword_never_changes_state(tmp_path: Path) -> None:
-    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(
+    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNYS").model_copy(
         update={"incident_source": IncidentSourceConfig(
             type="rss_keyword", url="https://example.invalid/rss", scope="single_stock", keywords=["market closure"]
         )}
     )
     store = IncidentStore()
     asyncio.run(run_incident_check_once([source], tmp_path / "missing.yaml", store, FakeClient("market closure")))
-    assert asyncio.run(store.get("XNAS")) is None
+    assert asyncio.run(store.get("XNYS")) is None
 
 
 def test_manual_override_wins(tmp_path: Path) -> None:
-    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNAS").model_copy(
+    source = next(item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic == "XNYS").model_copy(
         update={"incident_source": IncidentSourceConfig(
             type="structured_feed", url="https://example.invalid/feed", scope="market_wide"
         )}
     )
     manual = tmp_path / "manual.yaml"
-    manual.write_text("incidents:\n  - mic: XNAS\n    phase: technical_halt\n", encoding="utf-8")
+    manual.write_text("incidents:\n  - mic: XNYS\n    phase: technical_halt\n", encoding="utf-8")
     content = '{"items":[{"active":true,"phase":"regulatory_halt","note":"feed"}]}'
     store = IncidentStore()
     asyncio.run(run_incident_check_once([source], manual, store, FakeClient(content)))
-    record = asyncio.run(store.get("XNAS"))
+    record = asyncio.run(store.get("XNYS"))
     assert record is not None
     assert record.source_type == "manual"
     assert record.phase == Phase.TECHNICAL_HALT
