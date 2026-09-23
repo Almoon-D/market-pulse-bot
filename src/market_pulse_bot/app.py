@@ -17,8 +17,8 @@ from .config import ExchangeConfig, Settings, load_exchanges, scaffold_config, v
 from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_check_once
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
-from .notification_backend import NotificationBackend, StateFile, StateStore, build_backend, publish_or_update
-from .text_formatter import PayloadTooLargeError, build_all_payloads
+from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, publish_or_update
+from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
 
 logger = logging.getLogger("market_pulse_bot")
 
@@ -53,11 +53,12 @@ async def render_tick(
         return state, 1
 
     failures = 0
-    for slot, payload in (
+    slots: tuple[tuple[SlotName, MessagePayload], ...] = (
         ("events_message_ref", payloads[0]),
         ("dashboard_americas_eu_ref", payloads[1]),
         ("dashboard_asia_oceania_ref", payloads[2]),
-    ):
+    )
+    for slot, payload in slots:
         try:
             state = await publish_or_update(backend, state_store, state, slot, payload)
         except Exception:

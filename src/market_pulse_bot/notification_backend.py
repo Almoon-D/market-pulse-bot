@@ -9,7 +9,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 from urllib.parse import urlsplit
 
 import httpx
@@ -100,7 +100,7 @@ async def request_with_backoff(
     url: str,
     *,
     retries: int = 5,
-    **kwargs,
+    **kwargs: Any,
 ) -> httpx.Response:
     delay = 1.0
     for attempt in range(retries):
@@ -149,7 +149,9 @@ class DiscordBackend(NotificationBackend):
         response.raise_for_status()
         return DiscordRef(backend="discord", message_id=str(response.json()["id"]))
 
-    async def update(self, reference: DiscordRef, payload: MessagePayload) -> DiscordRef:
+    async def update(self, reference: StoredReference, payload: MessagePayload) -> DiscordRef:
+        if not isinstance(reference, DiscordRef):
+            raise TypeError(f"Discord backend cannot update {type(reference).__name__} reference")
         if payload.discord_embed is None:
             raise ValueError("Discord payload missing embed")
         url = f"https://discord.com/api/webhooks/{self._webhook_id}/{self._webhook_token}/messages/{reference.message_id}"
@@ -187,7 +189,9 @@ class SlackBackend(NotificationBackend):
         )
         return SlackRef(backend="slack", channel_id=str(data["channel"]), ts=str(data["ts"]))
 
-    async def update(self, reference: SlackRef, payload: MessagePayload) -> SlackRef:
+    async def update(self, reference: StoredReference, payload: MessagePayload) -> SlackRef:
+        if not isinstance(reference, SlackRef):
+            raise TypeError(f"Slack backend cannot update {type(reference).__name__} reference")
         try:
             await self._call(
                 "chat.update",
@@ -219,14 +223,22 @@ class TelegramBackend(NotificationBackend):
                 return None
             response.raise_for_status()
             raise RuntimeError(f"Telegram {method} failed: {error}")
-        return data["result"]
+        result = data["result"]
+        if not isinstance(result, dict):
+            raise TypeError(f"Telegram {method} returned an unexpected result payload")
+        return cast(dict[str, object], result)
 
     async def publish(self, payload: MessagePayload) -> TelegramRef:
         result = await self._call("sendMessage", {"chat_id": self._chat_id, "text": payload.plain_text})
         assert result is not None
-        return TelegramRef(backend="telegram", chat_id=str(self._chat_id), message_id=int(result["message_id"]))
+        message_id = result.get("message_id")
+        if not isinstance(message_id, (int, str)):
+            raise TypeError("Telegram sendMessage returned an invalid message_id")
+        return TelegramRef(backend="telegram", chat_id=str(self._chat_id), message_id=int(message_id))
 
-    async def update(self, reference: TelegramRef, payload: MessagePayload) -> TelegramRef:
+    async def update(self, reference: StoredReference, payload: MessagePayload) -> TelegramRef:
+        if not isinstance(reference, TelegramRef):
+            raise TypeError(f"Telegram backend cannot update {type(reference).__name__} reference")
         try:
             await self._call(
                 "editMessageText",
