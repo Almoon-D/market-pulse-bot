@@ -58,3 +58,8 @@ line-length = 120
 [tool.mypy]
 python_version = "3.14"
 strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "exchange_calendars"
+ignore_missing_imports = true
