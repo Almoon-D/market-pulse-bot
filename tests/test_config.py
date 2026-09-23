@@ -3,10 +3,17 @@ from pathlib import Path
 from market_pulse_bot.config import load_exchanges, scaffold_config, validate_exchange_calendars
 
 
-def test_config_has_24_unique_mics() -> None:
+def test_config_has_23_unique_mics() -> None:
+    """23, not the originally-specified 24: Chi-X Australia and Cboe
+    Australia are the same legal entity since the Feb 2022 rebrand
+    (completed its tech migration in Mar 2023) -- listing both as
+    separate exchanges would double-count one real venue under two
+    names/MICs, unlike Euronext Paris/Amsterdam/Milan, which really are
+    distinct trading venues.
+    """
     exchanges = load_exchanges(Path("config/exchanges.yaml"))
     mics = [exchange.mic for exchange in exchanges]
-    assert len(exchanges) == 24
+    assert len(exchanges) == 23
     assert len(mics) == len(set(mics))
 
 
@@ -44,7 +51,12 @@ def test_synthetic_time_format_accepts_valid_clock() -> None:
 
 
 
-def test_tmx_australia_uses_current_name_and_operating_mic() -> None:
+def test_cboe_australia_uses_current_name_and_operating_mic() -> None:
+    """Chi-X Australia rebranded to Cboe Australia in Feb 2022 (completed
+    its technology migration in Mar 2023), but its ISO 10383 *operating*
+    MIC stayed 'CHIA' -- 'CXA' is only an informal acronym, and 'TMX
+    Australia' was never a real entity at all.
+    """
     exchanges = {item.mic: item for item in load_exchanges(Path("config/exchanges.yaml"))}
-    assert exchanges["CHIA"].name == "TMX Australia Exchange"
+    assert exchanges["CHIA"].name == "Cboe Australia"
     assert exchanges["CHIA"].calendar_type == "synthetic"
