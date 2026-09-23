@@ -1,0 +1,8 @@
+# Rename this file to manual_incidents.yaml only when an operator needs an override.
+# Example:
+#
+# incidents:
+#   - mic: XNYS
+#     phase: technical_halt
+#     note: "Full-market matching engine incident"
+#     reopening_time: "2026-09-22T18:15:00Z"
