@@ -225,7 +225,7 @@ class TelegramBackend(NotificationBackend):
             raise RuntimeError(f"Telegram {method} failed: {error}")
         result = data["result"]
         if not isinstance(result, dict):
-            raise RuntimeError(f"Telegram {method} returned an unexpected result payload")
+            raise TypeError(f"Telegram {method} returned an unexpected result payload")
         return cast(dict[str, object], result)
 
     async def publish(self, payload: MessagePayload) -> TelegramRef:
@@ -233,7 +233,7 @@ class TelegramBackend(NotificationBackend):
         assert result is not None
         message_id = result.get("message_id")
         if not isinstance(message_id, (int, str)):
-            raise RuntimeError("Telegram sendMessage returned an invalid message_id")
+            raise TypeError("Telegram sendMessage returned an invalid message_id")
         return TelegramRef(backend="telegram", chat_id=str(self._chat_id), message_id=int(message_id))
 
     async def update(self, reference: StoredReference, payload: MessagePayload) -> TelegramRef:
