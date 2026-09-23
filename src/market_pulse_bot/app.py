@@ -18,7 +18,7 @@ from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_c
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
 from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, publish_or_update
-from .text_formatter import PayloadTooLargeError, build_all_payloads
+from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
 
 logger = logging.getLogger("market_pulse_bot")
 
