@@ -62,7 +62,10 @@ The canonical configuration is:
 config/exchanges.yaml
 ```
 
-The repository contains **24 unique MICs**. Four are the fully worked anchors:
+The repository contains **23 unique MICs** (not the originally-specified
+24: Chi-X Australia and Cboe Australia are the same legal entity since
+their Feb 2022 rebrand, so listing both would double-count one real
+venue). Four are the fully worked anchors:
 
 - `XNYS` — NYSE, `exchange_calendars`
 - `XMAD` — Bolsa de Madrid, `exchange_calendars`
