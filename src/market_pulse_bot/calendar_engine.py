@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
 import exchange_calendars as xc
@@ -53,13 +53,13 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         self.tz = ZoneInfo(timezone)
 
     def _local(self, value: Any) -> dt.datetime:
-        return value.to_pydatetime().astimezone(self.tz)
+        return cast(dt.datetime, value.to_pydatetime().astimezone(self.tz))
 
     def is_session(self, session: dt.date) -> bool:
         return bool(self._calendar.is_session(session))
 
     def next_session(self, after: dt.date) -> dt.date:
-        return self._calendar.date_to_session(after, direction="next").date()
+        return cast(dt.date, self._calendar.date_to_session(after, direction="next").date())
 
     def session_open(self, session: dt.date) -> dt.datetime:
         return self._local(self._calendar.session_open(session))
@@ -84,7 +84,7 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         return session in self._early_close_dates
 
     def is_normal_business_weekday(self, session: dt.date) -> bool:
-        return self._calendar.weekmask[session.weekday()] == "1"
+        return bool(self._calendar.weekmask[session.weekday()] == "1")
 
     def sessions_in_range(self, start: dt.date, end: dt.date) -> list[dt.date]:
         return [value.date() for value in self._calendar.sessions_in_range(start, end)]
