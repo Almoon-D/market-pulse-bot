@@ -140,7 +140,7 @@ class ExchangeRoster(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="MERCADOS_",
+        env_prefix="MPB_",
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
@@ -171,11 +171,11 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_backend_credentials(self) -> Settings:
         if self.notification_backend == "discord" and not self.discord_webhook_url:
-            raise ValueError("Discord backend requires MERCADOS_DISCORD_WEBHOOK_URL")
+            raise ValueError("Discord backend requires MPB_DISCORD_WEBHOOK_URL")
         if self.notification_backend == "slack" and not (self.slack_bot_token and self.slack_channel):
-            raise ValueError("Slack backend requires MERCADOS_SLACK_BOT_TOKEN and MERCADOS_SLACK_CHANNEL")
+            raise ValueError("Slack backend requires MPB_SLACK_BOT_TOKEN and MPB_SLACK_CHANNEL")
         if self.notification_backend == "telegram" and not (self.telegram_bot_token and self.telegram_chat_id):
-            raise ValueError("Telegram backend requires MERCADOS_TELEGRAM_BOT_TOKEN and MERCADOS_TELEGRAM_CHAT_ID")
+            raise ValueError("Telegram backend requires MPB_TELEGRAM_BOT_TOKEN and MPB_TELEGRAM_CHAT_ID")
         return self
 
 
