@@ -8,7 +8,8 @@ exchanges:
     currency: USD
     region: America
     phase_windows:
-      - {phase: pre_market, anchor: session_open, start_offset_minutes: -180, end_offset_minutes: 0}
+      - {phase: pre_market, anchor: session_open, start_offset_minutes: -330, end_offset_minutes: 0}
+      - {phase: closing_auction, anchor: session_close, start_offset_minutes: -10, end_offset_minutes: 0}
       - {phase: post_market, anchor: session_close, start_offset_minutes: 0, end_offset_minutes: 240}
     incident_source:
       type: structured_feed
@@ -101,7 +102,7 @@ exchanges:
   - {name: Taiwan Stock Exchange, mic: XTAI, calendar_type: exchange_calendars, timezone: Asia/Taipei, tz_label: CST, country_flag: 🇹🇼, currency: TWD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
   - {name: Singapore Exchange, mic: XSES, calendar_type: exchange_calendars, timezone: Asia/Singapore, tz_label: SGT, country_flag: 🇸🇬, currency: SGD, region: Asia, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
   - {name: Australian Securities Exchange, mic: XASX, calendar_type: exchange_calendars, timezone: Australia/Sydney, tz_label: AEST/AEDT, country_flag: 🇦🇺, currency: AUD, region: Oceania, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
-  - name: TMX Australia Exchange
+  - name: Cboe Australia
     mic: CHIA
     calendar_type: synthetic
     timezone: Australia/Sydney
@@ -113,4 +114,3 @@ exchanges:
     incident_source: {type: manual, scope: market_wide}
     synthetic: {open_time: "10:00", close_time: "16:00", lunch_start: null, lunch_end: null, trading_days: [0,1,2,3,4], holidays: []}
   - {name: New Zealand Exchange, mic: XNZE, calendar_type: exchange_calendars, timezone: Pacific/Auckland, tz_label: NZST/NZDT, country_flag: 🇳🇿, currency: NZD, region: Oceania, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
-  - {name: Nasdaq, mic: XNAS, calendar_type: exchange_calendars, timezone: America/New_York, tz_label: ET, country_flag: 🇺🇸, currency: USD, region: America, phase_windows: [], incident_source: {type: manual, scope: market_wide}}
