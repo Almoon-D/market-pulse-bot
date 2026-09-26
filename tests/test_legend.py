@@ -17,7 +17,7 @@ from market_pulse_bot.notification_backend import DiscordBackend, DiscordRef
 from market_pulse_bot.text_formatter import build_legend_payload
 
 LOCALES_DIR = Path("locales")
-TEST_DISCORD_WEBHOOK_URL = "https://discord.example.test/webhooks/fixture-token"
+TEST_DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/0/fixture%20token"
 TEST_SLACK_BOT_TOKEN = "test-slack-bot-token"
 TEST_TELEGRAM_BOT_TOKEN = "test-telegram-bot-token"
 
@@ -40,7 +40,7 @@ def test_legend_lists_every_phase_exactly_once() -> None:
     i18n = I18n(LOCALES_DIR, "en")
     payload = build_legend_payload(i18n, "telegram")
 
-    for emoji in ("⚫️", "🟣", "🔵", "🟢", "🔘", "⚪️", "🔶", "♦️", "🚨", "🔷", "🌗"):
+    for emoji in ("⚫️", "🟣", "🔵", "🟢", "🔘", "⚪️", "🔶", "♦️", "🚨", "🔷", "🌗", "🔜"):
         assert payload.plain_text.count(emoji) == 1, f"{emoji} should appear exactly once"
 
 

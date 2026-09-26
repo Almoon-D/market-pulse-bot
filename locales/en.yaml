@@ -53,6 +53,11 @@ footer:
 legend:
   title: "📖 Market Pulse Bot — Phase Legend"
   intro: "Sent on request only (--send-legend) — never as part of the regular updates."
+  section_session: "Session phases"
+  section_incident: "Incident states"
+  section_annotation: "Annotations"
+  early_close_label: "Early close"
+  transition_label: "Scheduled transition"
   arrow_explainer: "🔜 between two badges means a scheduled transition is coming up soon."
   early_close_explainer: "next to an exchange means today is a half-day (early close)."
   closed_desc: "No trading activity — it's night or the weekend at this exchange."

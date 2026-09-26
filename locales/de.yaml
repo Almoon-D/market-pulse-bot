@@ -53,6 +53,11 @@ footer:
 legend:
   title: "📖 Market Pulse Bot — Phasen-Legende"
   intro: "Wird nur auf Anfrage gesendet (--send-legend) — nie im Rahmen der regulären Updates."
+  section_session: "Handelsphasen"
+  section_incident: "Störungszustände"
+  section_annotation: "Hinweise"
+  early_close_label: "Verkürzter Handelstag"
+  transition_label: "Geplanter Übergang"
   arrow_explainer: "🔜 zwischen zwei Symbolen bedeutet, dass ein geplanter Übergang bevorsteht."
   early_close_explainer: "neben einer Börse bedeutet, dass heute ein verkürzter Handelstag ist."
   closed_desc: "Keine Handelsaktivität — an dieser Börse ist es Nacht oder Wochenende."

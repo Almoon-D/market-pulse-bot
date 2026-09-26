@@ -67,23 +67,21 @@ TRANSITION_KEYS = {
 
 LegendSection = Literal["session", "incident", "annotation"]
 
-# Badge, label key, description key. Variant-bearing phases are listed once per
-# variant because the dashboard renders variant-specific labels, not raw phases.
+# One row per visible badge. Variant-specific dashboard states share their
+# badge in the legend, while the dashboard itself keeps their exact labels.
 LEGEND_ROWS: tuple[tuple[LegendSection, str, str, str], ...] = (
-    ("session", PHASE_EMOJI[Phase.REGULAR], "phase.regular", "legend.desc.regular"),
-    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.opening_auction", "legend.desc.opening_auction"),
-    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.closing_auction", "legend.desc.closing_auction"),
-    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.pre_market", "legend.desc.pre_market"),
-    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.post_market", "legend.desc.post_market"),
-    ("session", PHASE_EMOJI[Phase.LUNCH], "phase.lunch", "legend.desc.lunch"),
-    ("session", PHASE_EMOJI[Phase.CLOSED], "phase.closed", "legend.desc.closed"),
-    ("session", PHASE_EMOJI[Phase.HOLIDAY], "phase.holiday", "legend.desc.holiday"),
-    ("incident", PHASE_EMOJI[Phase.REGULATORY_HALT], "phase.regulatory_halt", "legend.desc.regulatory_halt"),
-    ("incident", PHASE_EMOJI[Phase.TECHNICAL_HALT], "phase.technical_halt", "legend.desc.technical_halt"),
-    ("incident", PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], "phase.exceptional_closure", "legend.desc.exceptional_closure"),
-    ("incident", PHASE_EMOJI[Phase.POST_HALT_REOPENING], "phase.post_halt_reopening", "legend.desc.post_halt_reopening"),
-    ("annotation", EARLY_CLOSE_EMOJI, "legend.label_early_close", "legend.desc.early_close"),
-    ("annotation", TRANSITION_EMOJI, "legend.label_transition", "legend.desc.transition"),
+    ("session", PHASE_EMOJI[Phase.REGULAR], "phase.regular", "legend.regular_desc"),
+    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.auction", "legend.auction_desc"),
+    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.extended_hours", "legend.extended_hours_desc"),
+    ("session", PHASE_EMOJI[Phase.LUNCH], "phase.lunch", "legend.lunch_desc"),
+    ("session", PHASE_EMOJI[Phase.CLOSED], "phase.closed", "legend.closed_desc"),
+    ("session", PHASE_EMOJI[Phase.HOLIDAY], "phase.holiday", "legend.holiday_desc"),
+    ("incident", PHASE_EMOJI[Phase.REGULATORY_HALT], "phase.regulatory_halt", "legend.regulatory_halt_desc"),
+    ("incident", PHASE_EMOJI[Phase.TECHNICAL_HALT], "phase.technical_halt", "legend.technical_halt_desc"),
+    ("incident", PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], "phase.exceptional_closure", "legend.exceptional_closure_desc"),
+    ("incident", PHASE_EMOJI[Phase.POST_HALT_REOPENING], "phase.post_halt_reopening", "legend.post_halt_reopening_desc"),
+    ("annotation", EARLY_CLOSE_EMOJI, "legend.early_close_label", "legend.early_close_explainer"),
+    ("annotation", TRANSITION_EMOJI, "legend.transition_label", "legend.arrow_explainer"),
 )
 
 LEGEND_SECTION_KEYS: dict[LegendSection, str] = {

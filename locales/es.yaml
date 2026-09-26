@@ -53,6 +53,11 @@ footer:
 legend:
   title: "📖 Market Pulse Bot — Leyenda de fases"
   intro: "Se envía solo a petición (--send-legend) — nunca como parte de las actualizaciones periódicas."
+  section_session: "Fases de sesión"
+  section_incident: "Incidencias"
+  section_annotation: "Anotaciones"
+  early_close_label: "Cierre anticipado"
+  transition_label: "Transición programada"
   arrow_explainer: "🔜 entre dos símbolos indica que una transición programada está a punto de ocurrir."
   early_close_explainer: "junto a un mercado indica que hoy es una jornada reducida (cierre anticipado)."
   closed_desc: "Sin actividad de negociación — es de noche o fin de semana en este mercado."
