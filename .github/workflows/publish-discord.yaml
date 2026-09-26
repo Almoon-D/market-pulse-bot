@@ -1,0 +1,56 @@
+name: Publish to Discord
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: market-pulse-bot-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code (main)
+        uses: actions/checkout@v7
+
+      - name: Checkout bot state (rama separada)
+        uses: actions/checkout@v7
+        with:
+          ref: bot-state
+          path: .bot-state
+
+      - name: Restaurar estado previo
+        run: cp .bot-state/state.json data/state.json 2>/dev/null || true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install project
+        run: python -m pip install -e .
+
+      - name: Publicar/actualizar los 3 mensajes de Discord
+        env:
+          MPB_NOTIFICATION_BACKEND: discord
+          MPB_DISCORD_WEBHOOK_URL: ${{ secrets.MPB_DISCORD_WEBHOOK_URL }}
+          MPB_DISPLAY_TIMEZONE: Europe/Madrid
+          MPB_LANGUAGE: es
+        run: python main.py
+
+      - name: Guardar el nuevo estado en bot-state (no en main)
+        run: |
+          cp data/state.json .bot-state/state.json
+          cd .bot-state
+          if [ -n "$(git status --porcelain state.json)" ]; then
+            git config user.name "market-pulse-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "chore: update notification state"
+            git push
+          fi
