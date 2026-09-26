@@ -159,6 +159,8 @@ def main() -> int:
         parser.error("--incident-interval must be >= 60")
     if args.interval < 1:
         parser.error("--interval must be >= 1")
+    if args.command == "send-legend" and args.loop:
+        parser.error("send-legend is a one-shot command and cannot be combined with --loop")
     if args.command == "init-config":
         path = Path("config/exchanges.yaml")
         if not path.exists():
