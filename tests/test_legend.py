@@ -18,7 +18,6 @@ from market_pulse_bot.notification_backend import DiscordBackend, DiscordRef
 from market_pulse_bot.text_formatter import build_legend_payload
 
 LOCALES_DIR = Path("locales")
-TEST_DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/0/fixture%20token"
 TEST_SLACK_BOT_TOKEN = "test-slack-bot-token"
 TEST_TELEGRAM_BOT_TOKEN = "test-telegram-bot-token"
 
@@ -91,17 +90,29 @@ def test_discord_publishes_but_never_attempts_to_pin(monkeypatch: pytest.MonkeyP
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": "999"})
 
-    rc, calls = asyncio.run(
-        _run_send_legend_with_transport(
-            monkeypatch,
-            {
-                "MPB_NOTIFICATION_BACKEND": "discord",
-                "MPB_DISCORD_WEBHOOK_URL": TEST_DISCORD_WEBHOOK_URL,
-            },
-            handler,
-        )
-    )
+    class FixtureDiscordBackend(DiscordBackend):
+        def __init__(self, client: httpx.AsyncClient) -> None:
+            self._webhook_url = "https://fixture.invalid/webhook"
+            self._webhook_id = "fixture"
+            self._webhook_token = "fixture"
+            self._client = client
 
+    async def run() -> tuple[int, list[tuple[str, str]]]:
+        calls: list[tuple[str, str]] = []
+
+        async def wrapped(request: httpx.Request) -> httpx.Response:
+            calls.append((request.method, str(request.url)))
+            return await handler(request)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(wrapped)) as client:
+            monkeypatch.setattr(
+                "market_pulse_bot.app.build_backend",
+                lambda settings, _client: FixtureDiscordBackend(client),
+            )
+            settings = Settings(notification_backend="discord", discord_webhook_url="fixture")
+            return await send_legend(settings), calls
+
+    rc, calls = asyncio.run(run())
     assert rc == 0
     assert len(calls) == 1
 
