@@ -2,7 +2,7 @@
 
 **Know exactly what every major stock exchange is doing, right now, without refreshing a single tab.**
 
-Market Pulse Bot watches 23 exchanges across the Americas, Europe, Asia, and Oceania and keeps three messages — a 5-day holiday forecast and two live regional dashboards — permanently up to date in your Discord, Slack, or Telegram. Pre-market, opening auctions, continuous trading, lunch breaks, closing auctions, post-market, holidays, and exceptional halts — all tracked automatically, all shown in the same badge language everywhere you look.
+Market Pulse Bot watches 26 exchanges across the Americas, Europe, Asia, and Oceania and keeps three messages — a 5-day holiday forecast and two live regional dashboards — permanently up to date in your Discord, Slack, or Telegram. Pre-market, opening auctions, continuous trading, lunch breaks, closing auctions, post-market, holidays, and exceptional halts — all tracked automatically, all shown in the same badge language everywhere you look.
 
 Built for traders who need to know when a market opens without doing timezone math, for desks that want one shared source of truth instead of eleven browser tabs, and for anyone who has ever missed a closing auction because they were watching the wrong clock.
 
@@ -39,13 +39,16 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 
 ## Global coverage
 
-23 exchanges, four world regions. "Structure tracked" lists which real, source-verified microstructure phases are modeled beyond plain continuous trading. "Incident coverage" is deliberately blunt: **almost every venue here relies on an operator's manual word**, because no trustworthy, free, market-wide incident feed exists for most of the world's exchanges. Where a NASDAQ feed is wired in for NYSE, it only ever reports single-stock trading halts — it cannot and does not raise an exchange-wide alert by itself.
+26 exchanges, four world regions. "Structure tracked" lists which real, source-verified microstructure phases are modeled beyond plain continuous trading. "Incident coverage" is deliberately blunt: **almost every venue here relies on an operator's manual word**, because no trustworthy, free, market-wide incident feed exists for most of the world's exchanges. Where a NASDAQ feed is wired in for Nasdaq itself, it only ever reports single-stock trading halts — it cannot and does not raise an exchange-wide alert by itself.
 
 ### Americas
 
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
-| 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
+| 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | Manual |
+| 🇺🇸 Nasdaq Stock Market (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
+| 🇲🇽 Mexican Stock Exchange (`XMEX`) | Mexico's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
+| 🇨🇱 Santiago Stock Exchange (`XSGO`) | Chile's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
 | 🇨🇦 Toronto Stock Exchange (`XTSE`) | Canada's primary exchange, heavy in energy and mining names. | Pre-market, closing call | Manual |
 | 🇧🇷 B3 (`BVMF`) | Brazil's exchange; hours shift twice a year to stay aligned with US markets. | Pre-market, closing call | Manual |
 
@@ -98,7 +101,7 @@ python -m pip install -e ".[dev]"
 cp .env.example .env
 # Edit .env: pick discord, slack, or telegram, and add its credentials.
 
-python main.py init-config   # normalizes config/exchanges.yaml (already ships all 23)
+python main.py init-config   # normalizes config/exchanges.yaml (already ships all 26)
 python main.py               # one-shot: publish/update the three messages once
 ```
 
