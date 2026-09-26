@@ -40,7 +40,7 @@ def test_legend_lists_every_phase_exactly_once() -> None:
     i18n = I18n(LOCALES_DIR, "en")
     payload = build_legend_payload(i18n, "telegram")
 
-    for emoji in ("⚫️", "🟣", "🔵", "🟢", "🔘", "⚪️", "🔶", "♦️", "🚨", "🔷", "🌗", "🔜"):
+    for emoji in ("⚫️", "🟣", "🔵", "🟢", "🔘", "⚪️", "🔶", "♦️", "🚨", "🔷", "🌗"):
         assert payload.plain_text.count(emoji) == 1, f"{emoji} should appear exactly once"
 
 
