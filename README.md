@@ -39,14 +39,14 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 
 ## Global coverage
 
-26 exchanges, four world regions. "Structure tracked" lists which real, source-verified microstructure phases are modeled beyond plain continuous trading. "Incident coverage" is deliberately blunt: **almost every venue here relies on an operator's manual word**, because no trustworthy, free, market-wide incident feed exists for most of the world's exchanges. Where a NASDAQ feed is wired in for NYSE, it only ever reports single-stock trading halts — it cannot and does not raise an exchange-wide alert by itself.
+26 exchanges, four world regions. "Structure tracked" lists which real, source-verified microstructure phases are modeled beyond plain continuous trading. "Incident coverage" is deliberately blunt: **almost every venue here relies on an operator's manual word**, because no trustworthy, free, market-wide incident feed exists for most of the world's exchanges. Where a NASDAQ feed is wired in for Nasdaq itself, it only ever reports single-stock trading halts — it cannot and does not raise an exchange-wide alert by itself.
 
 ### Americas
 
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
-| 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
-| 🇺🇸 Nasdaq Stock Market (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | Manual |
+| 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | Manual |
+| 🇺🇸 Nasdaq Stock Market (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
 | 🇲🇽 Mexican Stock Exchange (`XMEX`) | Mexico's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
 | 🇨🇱 Santiago Stock Exchange (`XSGO`) | Chile's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
 | 🇨🇦 Toronto Stock Exchange (`XTSE`) | Canada's primary exchange, heavy in energy and mining names. | Pre-market, closing call | Manual |
