@@ -69,3 +69,10 @@ def test_americas_calendar_identities() -> None:
     assert exchanges["XNAS"].timezone == "America/New_York"
     assert exchanges["XMEX"].currency == "MXN"
     assert exchanges["XSGO"].timezone == "America/Santiago"
+
+
+def test_nasdaq_owns_the_structured_halt_feed() -> None:
+    exchanges = {e.mic: e for e in load_exchanges(Path("config/exchanges.yaml"))}
+    assert exchanges["XNAS"].incident_source.type == "structured_feed"
+    assert exchanges["XNAS"].incident_source.scope == "single_stock"
+    assert exchanges["XNYS"].incident_source.type == "manual"
