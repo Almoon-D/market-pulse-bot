@@ -18,7 +18,7 @@ from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_c
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
 from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, publish_or_update
-from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
+from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads, build_legend_payload
 
 logger = logging.getLogger("market_pulse_bot")
 
@@ -118,9 +118,33 @@ async def async_run(args: argparse.Namespace) -> int:
     return 0
 
 
+async def send_legend(settings: Settings) -> int:
+    """Publish the static phase-badge legend once, and try to pin it.
+
+    Deliberately separate from render_tick/async_run: this is an
+    explicit, operator-triggered, one-off action (Zero Spam rule) with
+    no persistent state-file slot of its own -- state.json's schema is
+    the three dashboard/events slots (Section 5) and stays that way.
+    Re-running this command posts (and tries to pin) a fresh copy; it
+    does not track or update a previous legend message.
+    """
+    i18n = I18n(settings.locales_dir, settings.language)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0)) as client:
+        backend = build_backend(settings, client)
+        payload = build_legend_payload(i18n, settings.notification_backend)
+        try:
+            reference = await backend.publish(payload)
+        except Exception:
+            logger.exception("failed to publish the legend message")
+            return 1
+        pinned = await backend.pin(reference)
+        logger.info("legend published%s", " and pinned" if pinned else " (not pinned)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="market-pulse-bot")
-    parser.add_argument("command", nargs="?", choices=("run", "init-config"), default="run")
+    parser.add_argument("command", nargs="?", choices=("run", "init-config", "send-legend"), default="run")
     parser.add_argument("--loop", action="store_true")
     parser.add_argument("--interval", type=int, default=30)
     parser.add_argument("--incident-interval", type=int, default=90)
@@ -142,6 +166,11 @@ def main() -> int:
         changed = scaffold_config(path)
         print("config/exchanges.yaml normalized" if changed else "config/exchanges.yaml already normalized")
         return 0
+    if args.command == "send-legend":
+        try:
+            return asyncio.run(send_legend(Settings()))
+        except KeyboardInterrupt:
+            return 0
     try:
         return asyncio.run(async_run(args))
     except KeyboardInterrupt:
