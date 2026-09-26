@@ -1,5 +1,4 @@
 """Backend-neutral message text plus protocol-specific packaging."""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -48,7 +47,9 @@ PHASE_EMOJI = {
     Phase.EXCEPTIONAL_CLOSURE: "🚨",
     Phase.POST_HALT_REOPENING: "🔷",
 }
+
 EARLY_CLOSE_EMOJI = "🌗"
+TRANSITION_EMOJI = "🔜"
 
 TRANSITION_KEYS = {
     TransitionKind.TO_PRE_MARKET: "transition.to_pre_market",
@@ -62,6 +63,33 @@ TRANSITION_KEYS = {
     TransitionKind.TO_REGULAR_DIRECT: "transition.to_regular_direct",
     TransitionKind.TO_POST_HALT_REOPENING: "transition.to_post_halt_reopening",
     TransitionKind.TO_REGULAR_UNCERTAIN: "transition.to_regular_uncertain",
+}
+
+LegendSection = Literal["session", "incident", "annotation"]
+
+# Badge, label key, description key. Variant-bearing phases are listed once per
+# variant because the dashboard renders variant-specific labels, not raw phases.
+LEGEND_ROWS: tuple[tuple[LegendSection, str, str, str], ...] = (
+    ("session", PHASE_EMOJI[Phase.REGULAR], "phase.regular", "legend.desc.regular"),
+    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.opening_auction", "legend.desc.opening_auction"),
+    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.closing_auction", "legend.desc.closing_auction"),
+    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.pre_market", "legend.desc.pre_market"),
+    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.post_market", "legend.desc.post_market"),
+    ("session", PHASE_EMOJI[Phase.LUNCH], "phase.lunch", "legend.desc.lunch"),
+    ("session", PHASE_EMOJI[Phase.CLOSED], "phase.closed", "legend.desc.closed"),
+    ("session", PHASE_EMOJI[Phase.HOLIDAY], "phase.holiday", "legend.desc.holiday"),
+    ("incident", PHASE_EMOJI[Phase.REGULATORY_HALT], "phase.regulatory_halt", "legend.desc.regulatory_halt"),
+    ("incident", PHASE_EMOJI[Phase.TECHNICAL_HALT], "phase.technical_halt", "legend.desc.technical_halt"),
+    ("incident", PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], "phase.exceptional_closure", "legend.desc.exceptional_closure"),
+    ("incident", PHASE_EMOJI[Phase.POST_HALT_REOPENING], "phase.post_halt_reopening", "legend.desc.post_halt_reopening"),
+    ("annotation", EARLY_CLOSE_EMOJI, "legend.label_early_close", "legend.desc.early_close"),
+    ("annotation", TRANSITION_EMOJI, "legend.label_transition", "legend.desc.transition"),
+)
+
+LEGEND_SECTION_KEYS: dict[LegendSection, str] = {
+    "session": "legend.section_session",
+    "incident": "legend.section_incident",
+    "annotation": "legend.section_annotation",
 }
 
 _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -93,7 +121,7 @@ def render_exchange_line(
     current = PHASE_EMOJI[state.current_phase]
     if state.show_transition and state.next_phase and state.transition_kind:
         target = PHASE_EMOJI[state.next_phase]
-        symbol = f"{current}🔜{target}"
+        symbol = f"{current}{TRANSITION_EMOJI}{target}"
         key = TRANSITION_KEYS[state.transition_kind]
         if state.uncertain_transition:
             phrase = i18n.t(key)
@@ -135,6 +163,17 @@ def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -
         native_time=_time(event.early_close_time),
         tz_label=event.tz_label,
     )
+
+
+def render_legend_line(badge: str, label_key: str, description_key: str, i18n: I18n) -> str:
+    return f"{badge} {i18n.t(label_key)} — {i18n.t(description_key)}"
+
+
+def legend_lines_by_section(i18n: I18n) -> dict[LegendSection, list[str]]:
+    sections: dict[LegendSection, list[str]] = {"session": [], "incident": [], "annotation": []}
+    for section, badge, label_key, description_key in LEGEND_ROWS:
+        sections[section].append(render_legend_line(badge, label_key, description_key, i18n))
+    return sections
 
 
 def _footer(now_utc: dt.datetime, display_tz: dt.tzinfo, i18n: I18n) -> str:
@@ -234,45 +273,27 @@ def build_legend_payload(i18n: I18n, backend: Backend) -> MessagePayload:
     """
     title = i18n.t("legend.title")
     intro = i18n.t("legend.intro")
-    arrow_note = i18n.t("legend.arrow_explainer")
-    early_close_note = i18n.t("legend.early_close_explainer")
-    footer_note = i18n.t("legend.footer_note")
-
-    # One line per Phase enum member. AUCTION and EXTENDED_HOURS each cover
-    # two real sub-states (opening/closing, pre/post-market) that already
-    # share one badge and one description -- the legend explains both in
-    # that single line rather than inventing a second colour for either.
-    rows: list[tuple[str, str, str]] = [
-        (PHASE_EMOJI[Phase.CLOSED], i18n.t("phase.closed"), i18n.t("legend.closed_desc")),
-        (PHASE_EMOJI[Phase.EXTENDED_HOURS], f'{i18n.t("phase.pre_market")} / {i18n.t("phase.post_market")}', i18n.t("legend.extended_hours_desc")),
-        (PHASE_EMOJI[Phase.AUCTION], f'{i18n.t("phase.opening_auction")} / {i18n.t("phase.closing_auction")}', i18n.t("legend.auction_desc")),
-        (PHASE_EMOJI[Phase.REGULAR], i18n.t("phase.regular"), i18n.t("legend.regular_desc")),
-        (PHASE_EMOJI[Phase.LUNCH], i18n.t("phase.lunch"), i18n.t("legend.lunch_desc")),
-        (PHASE_EMOJI[Phase.HOLIDAY], i18n.t("phase.holiday"), i18n.t("legend.holiday_desc")),
-        (PHASE_EMOJI[Phase.REGULATORY_HALT], i18n.t("phase.regulatory_halt"), i18n.t("legend.regulatory_halt_desc")),
-        (PHASE_EMOJI[Phase.TECHNICAL_HALT], i18n.t("phase.technical_halt"), i18n.t("legend.technical_halt_desc")),
-        (PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], i18n.t("phase.exceptional_closure"), i18n.t("legend.exceptional_closure_desc")),
-        (PHASE_EMOJI[Phase.POST_HALT_REOPENING], i18n.t("phase.post_halt_reopening"), i18n.t("legend.post_halt_reopening_desc")),
+    note = i18n.t("legend.footer_note")
+    sections = legend_lines_by_section(i18n)
+    blocks = [
+        f"— {i18n.t(LEGEND_SECTION_KEYS[section])} —\n" + "\n".join(sections[section])
+        for section in ("session", "incident", "annotation")
+        if sections[section]
     ]
-    phase_lines = [f"{emoji} {label} — {desc}" for emoji, label, desc in rows]
-    phase_lines.append(f"{EARLY_CLOSE_EMOJI} {early_close_note}")
-
-    body = "\n".join(phase_lines)
-    plain = f"{title}\n{intro}\n\n{body}\n\n{arrow_note}\n\n{footer_note}"
+    plain = f"{title}\n\n{intro}\n\n" + "\n\n".join(blocks) + f"\n\n{note}"
     _validate_text_limits(plain, backend, "legend")
-
     embed = None
     if backend == "discord":
-        fields = [{"name": label, "value": desc, "inline": False} for _emoji, label, desc in rows]
-        fields.append({"name": EARLY_CLOSE_EMOJI, "value": early_close_note, "inline": False})
-        embed = {
-            "title": title,
-            "description": f"{intro}\n\n{arrow_note}",
-            "fields": fields,
-            "footer": {"text": footer_note},
-        }
+        fields: list[dict[str, object]] = []
+        for section in ("session", "incident", "annotation"):
+            if not sections[section]:
+                continue
+            fields.extend(
+                {"name": name, "value": value, "inline": False}
+                for name, value in _split_field(i18n.t(LEGEND_SECTION_KEYS[section]), sections[section])
+            )
+        embed = {"title": title, "description": intro, "fields": fields, "footer": {"text": note}}
         _validate_discord_embed(embed)
-
     return MessagePayload("legend", plain, _slack_blocks(plain) if backend == "slack" else [], embed)
 
 
@@ -324,7 +345,6 @@ def build_dashboard_payload(
     ]
     plain = f"{title}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"
     _validate_text_limits(plain, backend, kind)
-
     embed = None
     if backend == "discord":
         fields: list[dict[str, object]] = []
@@ -335,7 +355,6 @@ def build_dashboard_payload(
             )
         embed = {"title": title, "fields": fields, "footer": {"text": footer}}
         _validate_discord_embed(embed)
-
     return MessagePayload(kind, plain, _slack_blocks(plain) if backend == "slack" else [], embed)
 
 
