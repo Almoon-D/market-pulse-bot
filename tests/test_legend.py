@@ -22,6 +22,14 @@ TEST_SLACK_BOT_TOKEN = "test-slack-bot-token"
 TEST_TELEGRAM_BOT_TOKEN = "test-telegram-bot-token"
 
 
+class FixtureDiscordBackend(DiscordBackend):
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._webhook_url = "https://fixture.invalid/webhook"
+        self._webhook_id = "fixture"
+        self._webhook_token = "fixture"
+        self._client = client
+
+
 @pytest.mark.parametrize("lang", ["en", "es", "de", "fr"])
 @pytest.mark.parametrize("backend", ["discord", "slack", "telegram"])
 def test_legend_renders_for_every_language_and_backend(lang: str, backend: str) -> None:
@@ -89,13 +97,6 @@ async def _run_send_legend_with_transport(
 def test_discord_publishes_but_never_attempts_to_pin(monkeypatch: pytest.MonkeyPatch) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": "999"})
-
-    class FixtureDiscordBackend(DiscordBackend):
-        def __init__(self, client: httpx.AsyncClient) -> None:
-            self._webhook_url = "https://fixture.invalid/webhook"
-            self._webhook_id = "fixture"
-            self._webhook_token = "fixture"
-            self._client = client
 
     async def run() -> tuple[int, list[tuple[str, str]]]:
         calls: list[tuple[str, str]] = []
@@ -215,7 +216,7 @@ def test_discord_pin_never_makes_a_network_call_even_if_attempted() -> None:
 
     async def run() -> bool:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            backend = DiscordBackend(TEST_DISCORD_WEBHOOK_URL, client)
+            backend = FixtureDiscordBackend(client)
             return await backend.pin(DiscordRef(backend="discord", message_id="123"))
 
     assert asyncio.run(run()) is False
