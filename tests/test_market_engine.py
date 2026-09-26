@@ -167,3 +167,28 @@ def test_sgx_midday_break_is_not_currently_detected() -> None:
     lunch = dt.datetime(2026, 9, 22, 12, 30, tzinfo=ZoneInfo("Asia/Singapore"))
     state = compute_phase_state(cfg, schedule, lunch.astimezone(dt.UTC), None, False)
     assert state.current_phase == Phase.LUNCH
+
+
+def test_nasdaq_uses_its_own_calendar_identifier(monkeypatch: pytest.MonkeyPatch) -> None:
+    import market_pulse_bot.calendar_engine as engine
+    original = engine.xc.get_calendar
+    requested: list[str] = []
+    def record(name: str):
+        requested.append(name)
+        return original(name)
+    monkeypatch.setattr(engine.xc, "get_calendar", record)
+    cfg = _configs()["XNAS"]
+    schedule = build_schedule(cfg)
+    assert requested == ["XNAS"]
+    assert schedule.is_session(dt.date(2026, 9, 22))
+    local = dt.datetime(2026, 9, 22, 10, 0, tzinfo=ZoneInfo("America/New_York"))
+    assert compute_phase_state(cfg, schedule, local.astimezone(dt.UTC), None, False).current_phase == Phase.REGULAR
+
+
+@pytest.mark.parametrize("mic,timezone", [("XMEX", "America/Mexico_City"), ("XSGO", "America/Santiago")])
+def test_new_americas_native_calendars(mic: str, timezone: str) -> None:
+    cfg = _configs()[mic]
+    schedule = build_schedule(cfg)
+    local = dt.datetime(2026, 9, 22, 12, 0, tzinfo=ZoneInfo(timezone))
+    assert schedule.is_session(local.date())
+    assert compute_phase_state(cfg, schedule, local.astimezone(dt.UTC), None, False).current_phase == Phase.REGULAR

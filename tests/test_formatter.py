@@ -45,3 +45,12 @@ def test_all_three_payloads_are_built() -> None:
     payloads = build_all_payloads(exchanges, states, [], now, ZoneInfo("Europe/Madrid"), I18n(Path("locales"), "es"), "telegram")
     assert len(payloads) == 3
     assert all(payload.plain_text for payload in payloads)
+
+
+def test_new_americas_are_visible_in_dashboard() -> None:
+    exchanges = [e for e in load_exchanges(Path("config/exchanges.yaml")) if e.mic in {"XNAS", "XMEX", "XSGO"}]
+    now = dt.datetime(2026, 9, 22, 15, tzinfo=dt.UTC)
+    states = {e.mic: PhaseState(Phase.REGULAR, None, None, None, None, None, None, False, False, False, now.astimezone(ZoneInfo(e.timezone))) for e in exchanges}
+    payload = build_all_payloads(exchanges, states, [], now, ZoneInfo("Europe/Madrid"), I18n(Path("locales"), "en"), "telegram")[1]
+    for e in exchanges:
+        assert e.name in payload.plain_text
