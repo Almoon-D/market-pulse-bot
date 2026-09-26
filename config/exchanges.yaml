@@ -21,9 +21,8 @@ exchanges:
     start_offset_minutes: 0
     end_offset_minutes: 240
   incident_source:
-    type: structured_feed
-    url: https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts
-    scope: single_stock
+    type: manual
+    scope: market_wide
 - name: Nasdaq Stock Market
   mic: XNAS
   calendar_type: exchange_calendars
@@ -46,8 +45,9 @@ exchanges:
     start_offset_minutes: 0
     end_offset_minutes: 240
   incident_source:
-    type: manual
-    scope: market_wide
+    type: structured_feed
+    url: https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts
+    scope: single_stock
 - name: Mexican Stock Exchange
   mic: XMEX
   calendar_type: exchange_calendars
