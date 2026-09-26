@@ -21,7 +21,7 @@ SLACK_BLOCK_TEXT_LIMIT = 3000
 SLACK_FALLBACK_TEXT_LIMIT = 4000
 TELEGRAM_MESSAGE_LIMIT = 4096
 
-MessageKind = Literal["events", "dashboard_amer_eu", "dashboard_asia_oc"]
+MessageKind = Literal["events", "dashboard_amer_eu", "dashboard_asia_oc", "legend"]
 
 
 class PayloadTooLargeError(RuntimeError):
@@ -225,6 +225,55 @@ def _validate_text_limits(text: str, backend: Backend, kind: str) -> None:
         raise PayloadTooLargeError(f"{kind} exceeds Telegram's 4096 character limit")
     if backend == "slack" and len(text) > SLACK_FALLBACK_TEXT_LIMIT:
         raise PayloadTooLargeError(f"{kind} exceeds conservative Slack text budget")
+
+
+def build_legend_payload(i18n: I18n, backend: Backend) -> MessagePayload:
+    """A static, on-request-only reference message explaining every phase
+    badge. Never sent as part of the regular render loop -- see
+    app.py's send_legend(), which is the only caller.
+    """
+    title = i18n.t("legend.title")
+    intro = i18n.t("legend.intro")
+    arrow_note = i18n.t("legend.arrow_explainer")
+    early_close_note = i18n.t("legend.early_close_explainer")
+    footer_note = i18n.t("legend.footer_note")
+
+    # One line per Phase enum member. AUCTION and EXTENDED_HOURS each cover
+    # two real sub-states (opening/closing, pre/post-market) that already
+    # share one badge and one description -- the legend explains both in
+    # that single line rather than inventing a second colour for either.
+    rows: list[tuple[str, str, str]] = [
+        (PHASE_EMOJI[Phase.CLOSED], i18n.t("phase.closed"), i18n.t("legend.closed_desc")),
+        (PHASE_EMOJI[Phase.EXTENDED_HOURS], f'{i18n.t("phase.pre_market")} / {i18n.t("phase.post_market")}', i18n.t("legend.extended_hours_desc")),
+        (PHASE_EMOJI[Phase.AUCTION], f'{i18n.t("phase.opening_auction")} / {i18n.t("phase.closing_auction")}', i18n.t("legend.auction_desc")),
+        (PHASE_EMOJI[Phase.REGULAR], i18n.t("phase.regular"), i18n.t("legend.regular_desc")),
+        (PHASE_EMOJI[Phase.LUNCH], i18n.t("phase.lunch"), i18n.t("legend.lunch_desc")),
+        (PHASE_EMOJI[Phase.HOLIDAY], i18n.t("phase.holiday"), i18n.t("legend.holiday_desc")),
+        (PHASE_EMOJI[Phase.REGULATORY_HALT], i18n.t("phase.regulatory_halt"), i18n.t("legend.regulatory_halt_desc")),
+        (PHASE_EMOJI[Phase.TECHNICAL_HALT], i18n.t("phase.technical_halt"), i18n.t("legend.technical_halt_desc")),
+        (PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], i18n.t("phase.exceptional_closure"), i18n.t("legend.exceptional_closure_desc")),
+        (PHASE_EMOJI[Phase.POST_HALT_REOPENING], i18n.t("phase.post_halt_reopening"), i18n.t("legend.post_halt_reopening_desc")),
+    ]
+    phase_lines = [f"{emoji} {label} — {desc}" for emoji, label, desc in rows]
+    phase_lines.append(f"{EARLY_CLOSE_EMOJI} {early_close_note}")
+
+    body = "\n".join(phase_lines)
+    plain = f"{title}\n{intro}\n\n{body}\n\n{arrow_note}\n\n{footer_note}"
+    _validate_text_limits(plain, backend, "legend")
+
+    embed = None
+    if backend == "discord":
+        fields = [{"name": label, "value": desc, "inline": False} for _emoji, label, desc in rows]
+        fields.append({"name": EARLY_CLOSE_EMOJI, "value": early_close_note, "inline": False})
+        embed = {
+            "title": title,
+            "description": f"{intro}\n\n{arrow_note}",
+            "fields": fields,
+            "footer": {"text": footer_note},
+        }
+        _validate_discord_embed(embed)
+
+    return MessagePayload("legend", plain, _slack_blocks(plain) if backend == "slack" else [], embed)
 
 
 def build_events_payload(
