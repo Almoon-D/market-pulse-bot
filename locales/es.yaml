@@ -11,6 +11,8 @@ phase:
   technical_halt: "Interrupción técnica/operativa"
   exceptional_closure: "Cierre excepcional de mercado"
   post_halt_reopening: "Reapertura tras suspensión"
+  auction: "Subasta"
+  extended_hours: "Horario extendido"
 transition:
   to_pre_market: "Pre-mercado en {minutes} minutos, a las {time} ({native_time} {tz_label})"
   to_opening_auction: "Subasta de apertura en {minutes} minutos, a las {time} ({native_time} {tz_label})"
@@ -48,3 +50,19 @@ weekday:
   sun: "dom"
 footer:
   generated_at: "Actualizado: {time}"
+legend:
+  title: "📖 Market Pulse Bot — Leyenda de fases"
+  intro: "Se envía solo a petición (--send-legend) — nunca como parte de las actualizaciones periódicas."
+  arrow_explainer: "🔜 entre dos símbolos indica que una transición programada está a punto de ocurrir."
+  early_close_explainer: "junto a un mercado indica que hoy es una jornada reducida (cierre anticipado)."
+  closed_desc: "Sin actividad de negociación — es de noche o fin de semana en este mercado."
+  extended_hours_desc: "Se puede operar, pero con menor liquidez."
+  auction_desc: "Las órdenes se acumulan y casan a un único precio, sin negociación continua."
+  regular_desc: "Negociación continua activa."
+  lunch_desc: "Pausa de negociación programada a mediodía."
+  holiday_desc: "Festivo oficial del mercado — cerrado todo el día."
+  regulatory_halt_desc: "Suspensión regulatoria de todo el mercado."
+  technical_halt_desc: "Interrupción técnica u operativa de todo el mercado."
+  exceptional_closure_desc: "Circuit breaker, catástrofe u orden del regulador — nunca un evento de una sola acción."
+  post_halt_reopening_desc: "La subasta de reapertura tras una suspensión — la duración puede variar."
+  footer_note: "Este mensaje es estático y no se actualiza solo."

@@ -127,6 +127,17 @@ class NotificationBackend(ABC):
     @abstractmethod
     async def update(self, reference: StoredReference, payload: MessagePayload) -> StoredReference: ...
 
+    async def pin(self, reference: StoredReference) -> bool:
+        """Pin a previously-published message, if this backend supports it.
+
+        Returns True on success, False on any graceful non-fatal failure
+        (missing permission/scope, or a backend that structurally cannot
+        pin at all). Never raises for a permission/capability problem --
+        pinning is a nice-to-have, not something that should take down
+        an otherwise-successful publish.
+        """
+        return False
+
 
 class DiscordBackend(NotificationBackend):
     def __init__(self, webhook_url: str, client: httpx.AsyncClient) -> None:
@@ -160,6 +171,19 @@ class DiscordBackend(NotificationBackend):
             raise MessageNotFoundError(f"Discord message {reference.message_id} not found")
         response.raise_for_status()
         return reference
+
+    async def pin(self, reference: StoredReference) -> bool:
+        # Structural, not a permission edge case: pinning requires the
+        # PUT /channels/{id}/pins/{message.id} REST endpoint, which needs a
+        # real bot token with Manage Messages in that channel. A webhook
+        # token -- all this backend has, by deliberate design (Section 5)
+        # -- cannot authenticate to that endpoint at all. There is no
+        # request this backend could make that would ever succeed here.
+        logger.info(
+            "Discord webhook backend cannot pin messages (requires a bot token with "
+            "Manage Messages, not a webhook token) -- skipping, this is expected"
+        )
+        return False
 
 
 class SlackBackend(NotificationBackend):
@@ -203,6 +227,18 @@ class SlackBackend(NotificationBackend):
             raise
         return reference
 
+    async def pin(self, reference: StoredReference) -> bool:
+        if not isinstance(reference, SlackRef):
+            return False
+        try:
+            await self._call("pins.add", {"channel": reference.channel_id, "timestamp": reference.ts})
+            return True
+        except Exception as exc:  # noqa: BLE001 - pinning is best-effort, never fatal
+            # Common non-fatal cases: missing_scope (bot token lacks
+            # pins:write), no_pin_permission (channel setting), already_pinned.
+            logger.warning("Slack pins.add failed, continuing without pinning: %s", exc)
+            return False
+
 
 class TelegramBackend(NotificationBackend):
     def __init__(self, bot_token: str, chat_id: str, client: httpx.AsyncClient) -> None:
@@ -210,19 +246,26 @@ class TelegramBackend(NotificationBackend):
         self._chat_id = chat_id
         self._client = client
 
-    async def _call(self, method: str, body: dict[str, object]) -> dict[str, object] | None:
+    async def _call(
+        self, method: str, body: dict[str, object], *, expect_dict_result: bool = True
+    ) -> dict[str, object] | None:
         response = await request_with_backoff(self._client, "POST", f"{self._base}/{method}", json=body)
         try:
             data = cast(dict[str, object], response.json())
         except ValueError:
             response.raise_for_status()
-            raise RuntimeError(f"Telegram {method} returned invalid JSON")
+            raise RuntimeError(f"Telegram {method} returned invalid JSON") from None
         if not data.get("ok"):
             error = str(data.get("description", "unknown_error"))
             if error.lower().startswith("bad request: message is not modified"):
                 return None
             response.raise_for_status()
             raise RuntimeError(f"Telegram {method} failed: {error}")
+        if not expect_dict_result:
+            # Some methods (pinChatMessage, unpinChatMessage, ...) return a
+            # plain boolean `result` on success per the Telegram Bot API,
+            # not an object -- there's nothing further to extract here.
+            return None
         result = data["result"]
         if not isinstance(result, dict):
             raise TypeError(f"Telegram {method} returned an unexpected result payload")
@@ -249,6 +292,23 @@ class TelegramBackend(NotificationBackend):
                 raise MessageNotFoundError(str(exc)) from exc
             raise
         return reference
+
+    async def pin(self, reference: StoredReference) -> bool:
+        if not isinstance(reference, TelegramRef):
+            return False
+        try:
+            await self._call(
+                "pinChatMessage",
+                {"chat_id": reference.chat_id, "message_id": reference.message_id, "disable_notification": True},
+                expect_dict_result=False,
+            )
+            return True
+        except Exception as exc:  # noqa: BLE001 - pinning is best-effort, never fatal
+            # Common non-fatal case: the bot isn't an admin in this chat
+            # (Telegram requires "Pin Messages" admin rights in groups/
+            # channels; in a private 1:1 chat only the other user can pin).
+            logger.warning("Telegram pinChatMessage failed, continuing without pinning: %s", exc)
+            return False
 
 
 def build_backend(settings: Settings, client: httpx.AsyncClient) -> NotificationBackend:

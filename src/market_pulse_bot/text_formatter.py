@@ -1,5 +1,4 @@
 """Backend-neutral message text plus protocol-specific packaging."""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -21,7 +20,7 @@ SLACK_BLOCK_TEXT_LIMIT = 3000
 SLACK_FALLBACK_TEXT_LIMIT = 4000
 TELEGRAM_MESSAGE_LIMIT = 4096
 
-MessageKind = Literal["events", "dashboard_amer_eu", "dashboard_asia_oc"]
+MessageKind = Literal["events", "dashboard_amer_eu", "dashboard_asia_oc", "legend"]
 
 
 class PayloadTooLargeError(RuntimeError):
@@ -48,7 +47,9 @@ PHASE_EMOJI = {
     Phase.EXCEPTIONAL_CLOSURE: "🚨",
     Phase.POST_HALT_REOPENING: "🔷",
 }
+
 EARLY_CLOSE_EMOJI = "🌗"
+TRANSITION_EMOJI = "🔜"
 
 TRANSITION_KEYS = {
     TransitionKind.TO_PRE_MARKET: "transition.to_pre_market",
@@ -62,6 +63,33 @@ TRANSITION_KEYS = {
     TransitionKind.TO_REGULAR_DIRECT: "transition.to_regular_direct",
     TransitionKind.TO_POST_HALT_REOPENING: "transition.to_post_halt_reopening",
     TransitionKind.TO_REGULAR_UNCERTAIN: "transition.to_regular_uncertain",
+}
+
+LegendSection = Literal["session", "incident", "annotation"]
+
+# Badge, label key, description key. Variant-bearing phases are listed once per
+# variant because the dashboard renders variant-specific labels, not raw phases.
+LEGEND_ROWS: tuple[tuple[LegendSection, str, str, str], ...] = (
+    ("session", PHASE_EMOJI[Phase.REGULAR], "phase.regular", "legend.desc.regular"),
+    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.opening_auction", "legend.desc.opening_auction"),
+    ("session", PHASE_EMOJI[Phase.AUCTION], "phase.closing_auction", "legend.desc.closing_auction"),
+    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.pre_market", "legend.desc.pre_market"),
+    ("session", PHASE_EMOJI[Phase.EXTENDED_HOURS], "phase.post_market", "legend.desc.post_market"),
+    ("session", PHASE_EMOJI[Phase.LUNCH], "phase.lunch", "legend.desc.lunch"),
+    ("session", PHASE_EMOJI[Phase.CLOSED], "phase.closed", "legend.desc.closed"),
+    ("session", PHASE_EMOJI[Phase.HOLIDAY], "phase.holiday", "legend.desc.holiday"),
+    ("incident", PHASE_EMOJI[Phase.REGULATORY_HALT], "phase.regulatory_halt", "legend.desc.regulatory_halt"),
+    ("incident", PHASE_EMOJI[Phase.TECHNICAL_HALT], "phase.technical_halt", "legend.desc.technical_halt"),
+    ("incident", PHASE_EMOJI[Phase.EXCEPTIONAL_CLOSURE], "phase.exceptional_closure", "legend.desc.exceptional_closure"),
+    ("incident", PHASE_EMOJI[Phase.POST_HALT_REOPENING], "phase.post_halt_reopening", "legend.desc.post_halt_reopening"),
+    ("annotation", EARLY_CLOSE_EMOJI, "legend.label_early_close", "legend.desc.early_close"),
+    ("annotation", TRANSITION_EMOJI, "legend.label_transition", "legend.desc.transition"),
+)
+
+LEGEND_SECTION_KEYS: dict[LegendSection, str] = {
+    "session": "legend.section_session",
+    "incident": "legend.section_incident",
+    "annotation": "legend.section_annotation",
 }
 
 _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -93,7 +121,7 @@ def render_exchange_line(
     current = PHASE_EMOJI[state.current_phase]
     if state.show_transition and state.next_phase and state.transition_kind:
         target = PHASE_EMOJI[state.next_phase]
-        symbol = f"{current}🔜{target}"
+        symbol = f"{current}{TRANSITION_EMOJI}{target}"
         key = TRANSITION_KEYS[state.transition_kind]
         if state.uncertain_transition:
             phrase = i18n.t(key)
@@ -135,6 +163,17 @@ def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -
         native_time=_time(event.early_close_time),
         tz_label=event.tz_label,
     )
+
+
+def render_legend_line(badge: str, label_key: str, description_key: str, i18n: I18n) -> str:
+    return f"{badge} {i18n.t(label_key)} — {i18n.t(description_key)}"
+
+
+def legend_lines_by_section(i18n: I18n) -> dict[LegendSection, list[str]]:
+    sections: dict[LegendSection, list[str]] = {"session": [], "incident": [], "annotation": []}
+    for section, badge, label_key, description_key in LEGEND_ROWS:
+        sections[section].append(render_legend_line(badge, label_key, description_key, i18n))
+    return sections
 
 
 def _footer(now_utc: dt.datetime, display_tz: dt.tzinfo, i18n: I18n) -> str:
@@ -227,6 +266,37 @@ def _validate_text_limits(text: str, backend: Backend, kind: str) -> None:
         raise PayloadTooLargeError(f"{kind} exceeds conservative Slack text budget")
 
 
+def build_legend_payload(i18n: I18n, backend: Backend) -> MessagePayload:
+    """A static, on-request-only reference message explaining every phase
+    badge. Never sent as part of the regular render loop -- see
+    app.py's send_legend(), which is the only caller.
+    """
+    title = i18n.t("legend.title")
+    intro = i18n.t("legend.intro")
+    note = i18n.t("legend.footer_note")
+    sections = legend_lines_by_section(i18n)
+    blocks = [
+        f"— {i18n.t(LEGEND_SECTION_KEYS[section])} —\n" + "\n".join(sections[section])
+        for section in ("session", "incident", "annotation")
+        if sections[section]
+    ]
+    plain = f"{title}\n\n{intro}\n\n" + "\n\n".join(blocks) + f"\n\n{note}"
+    _validate_text_limits(plain, backend, "legend")
+    embed = None
+    if backend == "discord":
+        fields: list[dict[str, object]] = []
+        for section in ("session", "incident", "annotation"):
+            if not sections[section]:
+                continue
+            fields.extend(
+                {"name": name, "value": value, "inline": False}
+                for name, value in _split_field(i18n.t(LEGEND_SECTION_KEYS[section]), sections[section])
+            )
+        embed = {"title": title, "description": intro, "fields": fields, "footer": {"text": note}}
+        _validate_discord_embed(embed)
+    return MessagePayload("legend", plain, _slack_blocks(plain) if backend == "slack" else [], embed)
+
+
 def build_events_payload(
     events: list[UpcomingEvent],
     now_utc: dt.datetime,
@@ -275,7 +345,6 @@ def build_dashboard_payload(
     ]
     plain = f"{title}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"
     _validate_text_limits(plain, backend, kind)
-
     embed = None
     if backend == "discord":
         fields: list[dict[str, object]] = []
@@ -286,7 +355,6 @@ def build_dashboard_payload(
             )
         embed = {"title": title, "fields": fields, "footer": {"text": footer}}
         _validate_discord_embed(embed)
-
     return MessagePayload(kind, plain, _slack_blocks(plain) if backend == "slack" else [], embed)
 
 

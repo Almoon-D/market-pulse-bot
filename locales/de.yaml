@@ -11,6 +11,8 @@ phase:
   technical_halt: "Technische/betriebliche Aussetzung"
   exceptional_closure: "Außerordentliche Marktschließung"
   post_halt_reopening: "Wiedereröffnung nach Aussetzung"
+  auction: "Auktion"
+  extended_hours: "Erweiterte Handelszeiten"
 transition:
   to_pre_market: "Vorbörslicher Handel in {minutes} Minuten, um {time} ({native_time} {tz_label})"
   to_opening_auction: "Eröffnungsauktion in {minutes} Minuten, um {time} ({native_time} {tz_label})"
@@ -48,3 +50,19 @@ weekday:
   sun: "So"
 footer:
   generated_at: "Aktualisiert: {time}"
+legend:
+  title: "📖 Market Pulse Bot — Phasen-Legende"
+  intro: "Wird nur auf Anfrage gesendet (--send-legend) — nie im Rahmen der regulären Updates."
+  arrow_explainer: "🔜 zwischen zwei Symbolen bedeutet, dass ein geplanter Übergang bevorsteht."
+  early_close_explainer: "neben einer Börse bedeutet, dass heute ein verkürzter Handelstag ist."
+  closed_desc: "Keine Handelsaktivität — an dieser Börse ist es Nacht oder Wochenende."
+  extended_hours_desc: "Handel ist möglich, aber die Liquidität ist geringer."
+  auction_desc: "Orders werden gesammelt und zu einem einzigen Preis zusammengeführt, nicht fortlaufend."
+  regular_desc: "Fortlaufender Handel ist aktiv."
+  lunch_desc: "Geplante Mittagspause im Handel."
+  holiday_desc: "Offizieller Börsenfeiertag — den ganzen Tag geschlossen."
+  regulatory_halt_desc: "Regulatorische Aussetzung der gesamten Börse."
+  technical_halt_desc: "Technische oder betriebliche Aussetzung der gesamten Börse."
+  exceptional_closure_desc: "Circuit Breaker, Katastrophe oder behördliche Anordnung — nie ein Einzelwert-Ereignis."
+  post_halt_reopening_desc: "Die Wiedereröffnungsauktion nach einer Aussetzung — die Dauer kann variieren."
+  footer_note: "Diese Nachricht ist statisch und aktualisiert sich nicht von selbst."
