@@ -56,7 +56,7 @@ def test_legend_never_shows_the_retired_red_square() -> None:
     i18n = I18n(LOCALES_DIR, "en")
 
     for backend in ("discord", "slack", "telegram"):
-        assert "🟥" not in build_legend_payload(i18n, backend).plain_text
+        assert chr(0x1F7E5) not in build_legend_payload(i18n, backend).plain_text
 
 
 def test_legend_does_not_reuse_a_dashboard_state_slot() -> None:

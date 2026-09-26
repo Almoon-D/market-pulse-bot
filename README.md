@@ -190,7 +190,7 @@ market-pulse-bot/
 
 ## Validation
 
-CI runs, on every change, against Python 3.14: compile check, `pytest`, `ruff`, `mypy` (strict), a targeted credential scan, and a permanent grep guard against the retired 🟥 glyph ever reappearing.
+CI runs, on every change, against Python 3.14: compile check, `pytest`, `ruff`, `mypy` (strict), a targeted credential scan, and a permanent grep guard against the retired red-square glyph ever reappearing.
 
 ```bash
 python -m compileall -q main.py src tests
