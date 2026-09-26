@@ -11,6 +11,8 @@ phase:
   technical_halt: "Technical/operational halt"
   exceptional_closure: "Exceptional market-wide closure"
   post_halt_reopening: "Post-halt reopening"
+  auction: "Auction"
+  extended_hours: "Extended hours"
 transition:
   to_pre_market: "Pre-market in {minutes} minutes, at {time} ({native_time} {tz_label})"
   to_opening_auction: "Opening auction in {minutes} minutes, at {time} ({native_time} {tz_label})"
@@ -48,3 +50,19 @@ weekday:
   sun: "Sun"
 footer:
   generated_at: "Updated: {time}"
+legend:
+  title: "📖 Market Pulse Bot — Phase Legend"
+  intro: "Sent on request only (--send-legend) — never as part of the regular updates."
+  arrow_explainer: "🔜 between two badges means a scheduled transition is coming up soon."
+  early_close_explainer: "next to an exchange means today is a half-day (early close)."
+  closed_desc: "No trading activity — it's night or the weekend at this exchange."
+  extended_hours_desc: "Trading is possible but liquidity is reduced."
+  auction_desc: "Orders are collected and matched at a single price, not continuously."
+  regular_desc: "Continuous trading is active."
+  lunch_desc: "Scheduled midday trading pause."
+  holiday_desc: "Official market holiday — closed for the full day."
+  regulatory_halt_desc: "Full-exchange regulatory or compliance halt."
+  technical_halt_desc: "Full-exchange technical or operational halt."
+  exceptional_closure_desc: "Circuit breaker, disaster, or regulator order — never a single-stock event."
+  post_halt_reopening_desc: "The reopening call after a halt — duration can vary."
+  footer_note: "This message is static and won't self-update on its own."
