@@ -1,27 +1,25 @@
-"""Tests for the --send-legend command: payload formatting across all
-languages/backends, and dispatch/pin behavior including graceful
-degradation (Discord's structural inability to pin, and permission/
-scope failures on Slack and Telegram).
-"""
+"""Tests for the --send-legend command across languages and backends."""
+from __future__ import annotations
 
 import asyncio
+import inspect
 import os
-import sys
 from pathlib import Path
+from typing import Any, Awaitable, Callable
 
 import httpx
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "src"))
-
 from market_pulse_bot.app import send_legend
 from market_pulse_bot.config import Settings
 from market_pulse_bot.i18n import I18n
-from market_pulse_bot.notification_backend import DiscordBackend
+from market_pulse_bot.notification_backend import DiscordBackend, DiscordRef
 from market_pulse_bot.text_formatter import build_legend_payload
 
-LOCALES_DIR = REPO_ROOT / "locales"
+LOCALES_DIR = Path("locales")
+TEST_DISCORD_WEBHOOK_URL = "https://discord.example.test/webhooks/fixture-token"
+TEST_SLACK_BOT_TOKEN = "test-slack-bot-token"
+TEST_TELEGRAM_BOT_TOKEN = "test-telegram-bot-token"
 
 
 @pytest.mark.parametrize("lang", ["en", "es", "de", "fr"])
@@ -29,6 +27,7 @@ LOCALES_DIR = REPO_ROOT / "locales"
 def test_legend_renders_for_every_language_and_backend(lang: str, backend: str) -> None:
     i18n = I18n(LOCALES_DIR, lang)
     payload = build_legend_payload(i18n, backend)
+
     assert payload.kind == "legend"
     assert payload.plain_text
     if backend == "discord":
@@ -40,31 +39,31 @@ def test_legend_renders_for_every_language_and_backend(lang: str, backend: str) 
 def test_legend_lists_every_phase_exactly_once() -> None:
     i18n = I18n(LOCALES_DIR, "en")
     payload = build_legend_payload(i18n, "telegram")
+
     for emoji in ("⚫️", "🟣", "🔵", "🟢", "🔘", "⚪️", "🔶", "♦️", "🚨", "🔷", "🌗"):
         assert payload.plain_text.count(emoji) == 1, f"{emoji} should appear exactly once"
 
 
 def test_legend_never_shows_the_retired_red_square() -> None:
     i18n = I18n(LOCALES_DIR, "en")
+
     for backend in ("discord", "slack", "telegram"):
         assert "🟥" not in build_legend_payload(i18n, backend).plain_text
 
 
-def test_legend_does_not_reuse_a_dashboard_state_slot(tmp_path) -> None:
-    """The Zero Spam rule and the three-slot state.json schema both depend
-    on the legend never being written through publish_or_update -- it must
-    always be a fresh backend.publish() call with no slot tracking.
-    """
-    import inspect
+def test_legend_does_not_reuse_a_dashboard_state_slot() -> None:
+    """The legend must not share one of the three persistent dashboard slots."""
+    source = inspect.getsource(send_legend)
 
-    from market_pulse_bot import app as app_module
-
-    source = inspect.getsource(app_module.send_legend)
     assert "publish_or_update" not in source
     assert "state_store" not in source
 
 
-async def _run_send_legend_with_transport(monkeypatch: pytest.MonkeyPatch, env: dict[str, str], handler) -> tuple[int, list[tuple[str, str]]]:
+async def _run_send_legend_with_transport(
+    monkeypatch: pytest.MonkeyPatch,
+    env: dict[str, str],
+    handler: Callable[[httpx.Request], Awaitable[httpx.Response]],
+) -> tuple[int, list[tuple[str, str]]]:
     calls: list[tuple[str, str]] = []
 
     async def wrapped(request: httpx.Request) -> httpx.Response:
@@ -73,7 +72,7 @@ async def _run_send_legend_with_transport(monkeypatch: pytest.MonkeyPatch, env: 
 
     original_client = httpx.AsyncClient
 
-    def patched_client(*args, **kwargs):
+    def patched_client(*args: Any, **kwargs: Any) -> httpx.AsyncClient:
         kwargs["transport"] = httpx.MockTransport(wrapped)
         return original_client(*args, **kwargs)
 
@@ -84,21 +83,26 @@ async def _run_send_legend_with_transport(monkeypatch: pytest.MonkeyPatch, env: 
     for key, value in env.items():
         monkeypatch.setenv(key, value)
 
-    rc = await send_legend(Settings())
-    return rc, calls
+    return await send_legend(Settings()), calls
 
 
 def test_discord_publishes_but_never_attempts_to_pin(monkeypatch: pytest.MonkeyPatch) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"id": "999"})
 
-    rc, calls = asyncio.run(_run_send_legend_with_transport(
-        monkeypatch,
-        {"MPB_NOTIFICATION_BACKEND": "discord", "MPB_DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/1/tok"},
-        handler,
-    ))
+    rc, calls = asyncio.run(
+        _run_send_legend_with_transport(
+            monkeypatch,
+            {
+                "MPB_NOTIFICATION_BACKEND": "discord",
+                "MPB_DISCORD_WEBHOOK_URL": TEST_DISCORD_WEBHOOK_URL,
+            },
+            handler,
+        )
+    )
+
     assert rc == 0
-    assert len(calls) == 1, "Discord must publish once and never make a pin request at all"
+    assert len(calls) == 1
 
 
 def test_slack_publishes_and_pins_successfully(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -107,13 +111,20 @@ def test_slack_publishes_and_pins_successfully(monkeypatch: pytest.MonkeyPatch) 
             return httpx.Response(200, json={"ok": True})
         return httpx.Response(200, json={"ok": True, "ts": "1.1", "channel": "C123"})
 
-    rc, calls = asyncio.run(_run_send_legend_with_transport(
-        monkeypatch,
-        {"MPB_NOTIFICATION_BACKEND": "slack", "MPB_SLACK_BOT_TOKEN": "xoxb-x", "MPB_SLACK_CHANNEL": "C123"},
-        handler,
-    ))
+    rc, calls = asyncio.run(
+        _run_send_legend_with_transport(
+            monkeypatch,
+            {
+                "MPB_NOTIFICATION_BACKEND": "slack",
+                "MPB_SLACK_BOT_TOKEN": TEST_SLACK_BOT_TOKEN,
+                "MPB_SLACK_CHANNEL": "C123",
+            },
+            handler,
+        )
+    )
+
     assert rc == 0
-    assert len(calls) == 2  # chat.postMessage + pins.add
+    assert len(calls) == 2
 
 
 def test_slack_missing_pin_scope_does_not_fail_the_command(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -122,28 +133,40 @@ def test_slack_missing_pin_scope_does_not_fail_the_command(monkeypatch: pytest.M
             return httpx.Response(200, json={"ok": False, "error": "missing_scope"})
         return httpx.Response(200, json={"ok": True, "ts": "1.1", "channel": "C123"})
 
-    rc, _calls = asyncio.run(_run_send_legend_with_transport(
-        monkeypatch,
-        {"MPB_NOTIFICATION_BACKEND": "slack", "MPB_SLACK_BOT_TOKEN": "xoxb-x", "MPB_SLACK_CHANNEL": "C123"},
-        handler,
-    ))
-    assert rc == 0, "a missing pin scope must not fail the overall command -- the message was still published"
+    rc, _calls = asyncio.run(
+        _run_send_legend_with_transport(
+            monkeypatch,
+            {
+                "MPB_NOTIFICATION_BACKEND": "slack",
+                "MPB_SLACK_BOT_TOKEN": TEST_SLACK_BOT_TOKEN,
+                "MPB_SLACK_CHANNEL": "C123",
+            },
+            handler,
+        )
+    )
+
+    assert rc == 0
 
 
 def test_telegram_pin_uses_boolean_result_not_dict(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Regression test: pinChatMessage returns result: true (a bool) per
-    the real Telegram Bot API, not a dict like sendMessage/editMessageText.
-    """
+    """Regression test for Telegram's boolean pinChatMessage result."""
     async def handler(request: httpx.Request) -> httpx.Response:
         if "pinChatMessage" in str(request.url):
             return httpx.Response(200, json={"ok": True, "result": True})
         return httpx.Response(200, json={"ok": True, "result": {"message_id": 777}})
 
-    rc, calls = asyncio.run(_run_send_legend_with_transport(
-        monkeypatch,
-        {"MPB_NOTIFICATION_BACKEND": "telegram", "MPB_TELEGRAM_BOT_TOKEN": "123:abc", "MPB_TELEGRAM_CHAT_ID": "-100123"},
-        handler,
-    ))
+    rc, calls = asyncio.run(
+        _run_send_legend_with_transport(
+            monkeypatch,
+            {
+                "MPB_NOTIFICATION_BACKEND": "telegram",
+                "MPB_TELEGRAM_BOT_TOKEN": TEST_TELEGRAM_BOT_TOKEN,
+                "MPB_TELEGRAM_CHAT_ID": "-100123",
+            },
+            handler,
+        )
+    )
+
     assert rc == 0
     assert len(calls) == 2
 
@@ -151,30 +174,36 @@ def test_telegram_pin_uses_boolean_result_not_dict(monkeypatch: pytest.MonkeyPat
 def test_telegram_not_admin_does_not_fail_the_command(monkeypatch: pytest.MonkeyPatch) -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         if "pinChatMessage" in str(request.url):
-            return httpx.Response(200, json={"ok": False, "description": "Bad Request: not enough rights to pin a message"})
+            return httpx.Response(
+                200,
+                json={"ok": False, "description": "Bad Request: not enough rights to pin a message"},
+            )
         return httpx.Response(200, json={"ok": True, "result": {"message_id": 777}})
 
-    rc, _calls = asyncio.run(_run_send_legend_with_transport(
-        monkeypatch,
-        {"MPB_NOTIFICATION_BACKEND": "telegram", "MPB_TELEGRAM_BOT_TOKEN": "123:abc", "MPB_TELEGRAM_CHAT_ID": "-100123"},
-        handler,
-    ))
+    rc, _calls = asyncio.run(
+        _run_send_legend_with_transport(
+            monkeypatch,
+            {
+                "MPB_NOTIFICATION_BACKEND": "telegram",
+                "MPB_TELEGRAM_BOT_TOKEN": TEST_TELEGRAM_BOT_TOKEN,
+                "MPB_TELEGRAM_CHAT_ID": "-100123",
+            },
+            handler,
+        )
+    )
+
     assert rc == 0
 
 
 def test_discord_pin_never_makes_a_network_call_even_if_attempted() -> None:
-    """Belt-and-braces: calling DiscordBackend.pin() directly must never
-    issue an HTTP request -- it's a structural impossibility (webhook
-    tokens can't authenticate to the pins endpoint), not a try/except.
-    """
+    """Discord webhook credentials cannot authenticate to the pins endpoint."""
+
     async def handler(request: httpx.Request) -> httpx.Response:
         raise AssertionError("DiscordBackend.pin() must never make an HTTP request")
 
     async def run() -> bool:
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            backend = DiscordBackend("https://discord.com/api/webhooks/1/tok", client)
-            from market_pulse_bot.notification_backend import DiscordRef
-
+            backend = DiscordBackend(TEST_DISCORD_WEBHOOK_URL, client)
             return await backend.pin(DiscordRef(backend="discord", message_id="123"))
 
     assert asyncio.run(run()) is False
