@@ -3,8 +3,8 @@ from pathlib import Path
 from market_pulse_bot.config import load_exchanges, scaffold_config, validate_exchange_calendars
 
 
-def test_config_has_23_unique_mics() -> None:
-    """23, not the originally-specified 24: Chi-X Australia and Cboe
+def test_config_has_26_unique_mics() -> None:
+    """Previously 23, not the originally-specified 24: Chi-X Australia and Cboe
     Australia are the same legal entity since the Feb 2022 rebrand
     (completed its tech migration in Mar 2023) -- listing both as
     separate exchanges would double-count one real venue under two
@@ -13,7 +13,7 @@ def test_config_has_23_unique_mics() -> None:
     """
     exchanges = load_exchanges(Path("config/exchanges.yaml"))
     mics = [exchange.mic for exchange in exchanges]
-    assert len(exchanges) == 23
+    assert len(exchanges) == 26
     assert len(mics) == len(set(mics))
 
 
@@ -60,3 +60,12 @@ def test_cboe_australia_uses_current_name_and_operating_mic() -> None:
     exchanges = {item.mic: item for item in load_exchanges(Path("config/exchanges.yaml"))}
     assert exchanges["CHIA"].name == "Cboe Australia"
     assert exchanges["CHIA"].calendar_type == "synthetic"
+
+
+def test_americas_calendar_identities() -> None:
+    exchanges = {e.mic: e for e in load_exchanges(Path("config/exchanges.yaml"))}
+    assert {"XNYS", "XNAS", "XMEX", "XSGO"} <= exchanges.keys()
+    assert exchanges["XNAS"].mic == "XNAS"
+    assert exchanges["XNAS"].timezone == "America/New_York"
+    assert exchanges["XMEX"].currency == "MXN"
+    assert exchanges["XSGO"].timezone == "America/Santiago"
