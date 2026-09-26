@@ -86,6 +86,7 @@ class ExchangeConfig(BaseModel):
     name: str
     mic: str = Field(min_length=4, max_length=4)
     calendar_type: CalendarType
+    calendar_name: str | None = None
     timezone: str
     tz_label: str
     country_flag: str
@@ -116,6 +117,10 @@ class ExchangeConfig(BaseModel):
 
     @model_validator(mode="after")
     def cross_field_checks(self) -> ExchangeConfig:
+        if self.calendar_type == "exchange_calendars" and not self.calendar_name:
+            self.calendar_name = self.mic
+        if self.calendar_type == "synthetic" and self.calendar_name is not None:
+            raise ValueError(f"{self.mic}: calendar_name is only valid for exchange_calendars")
         if self.calendar_type == "synthetic" and self.synthetic is None:
             raise ValueError(f"{self.mic}: synthetic calendar requires synthetic block")
         if self.calendar_type == "exchange_calendars" and self.synthetic is not None:
@@ -191,9 +196,9 @@ def validate_exchange_calendars(exchanges: list[ExchangeConfig]) -> None:
 
     known = set(xc.get_calendar_names())
     for exchange in exchanges:
-        if exchange.calendar_type == "exchange_calendars" and exchange.mic not in known:
+        if exchange.calendar_type == "exchange_calendars" and exchange.calendar_name not in known:
             raise ValueError(
-                f"{exchange.mic} is not a calendar known to exchange_calendars; "
+                f"{exchange.calendar_name} (configured for {exchange.mic}) is not a calendar known to exchange_calendars; "
                 "use a supported calendar or a synthetic schedule"
             )
 

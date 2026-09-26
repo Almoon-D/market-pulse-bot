@@ -24,7 +24,10 @@ classifiers = [
 dependencies = [
   "pydantic>=2.12",
   "pydantic-settings>=2.14",
-  "exchange_calendars>=4.13.2",
+  "exchange_calendars>=4.13.2,<5",
+  # NumPy 2.4 exposes an upstream XHKG holiday-rule incompatibility in exchange_calendars 4.13.2.
+  # Keep calendar construction deterministic until the upstream release removes the bare-integer timedelta path.
+  "numpy>=2.3,<2.4",
   "httpx>=0.28",
   "PyYAML>=6.0",
 ]

@@ -167,3 +167,28 @@ def test_sgx_midday_break_is_not_currently_detected() -> None:
     lunch = dt.datetime(2026, 9, 22, 12, 30, tzinfo=ZoneInfo("Asia/Singapore"))
     state = compute_phase_state(cfg, schedule, lunch.astimezone(dt.UTC), None, False)
     assert state.current_phase == Phase.LUNCH
+
+
+@pytest.mark.parametrize(
+    ("mic", "local_time", "timezone"),
+    [
+        ("XNAS", (2026, 9, 22, 10, 0), "America/New_York"),
+        ("XMEX", (2026, 9, 22, 10, 0), "America/Mexico_City"),
+        ("XSGO", (2026, 9, 22, 12, 0), "America/Santiago"),
+    ],
+)
+def test_new_americas_calendars_load_and_report_regular_session(
+    mic: str, local_time: tuple[int, int, int, int, int], timezone: str
+) -> None:
+    cfg = _configs()[mic]
+    schedule = build_schedule(cfg)
+    local = dt.datetime(*local_time, tzinfo=ZoneInfo(timezone))
+    state = compute_phase_state(cfg, schedule, local.astimezone(dt.UTC), None, False)
+    assert state.current_phase == Phase.REGULAR
+    assert state.native_now.tzinfo == ZoneInfo(timezone)
+
+
+def test_nasdaq_is_distinct_exchange_with_shared_us_calendar() -> None:
+    configs = _configs()
+    assert configs["XNAS"].mic != configs["XNYS"].mic
+    assert configs["XNAS"].calendar_name == configs["XNYS"].calendar_name == "XNYS"

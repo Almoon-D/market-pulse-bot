@@ -45,3 +45,15 @@ def test_all_three_payloads_are_built() -> None:
     payloads = build_all_payloads(exchanges, states, [], now, ZoneInfo("Europe/Madrid"), I18n(Path("locales"), "es"), "telegram")
     assert len(payloads) == 3
     assert all(payload.plain_text for payload in payloads)
+
+
+def test_new_americas_exchanges_are_in_americas_dashboard() -> None:
+    exchanges = [item for item in load_exchanges(Path("config/exchanges.yaml")) if item.mic in {"XNAS", "XMEX", "XSGO"}]
+    now = dt.datetime(2026, 9, 22, 15, 0, tzinfo=dt.UTC)
+    states = {
+        item.mic: PhaseState(Phase.REGULAR, None, None, None, None, None, None, False, False, False, now.astimezone(ZoneInfo(item.timezone)))
+        for item in exchanges
+    }
+    payload = build_all_payloads(exchanges, states, [], now, ZoneInfo("Europe/Madrid"), I18n(Path("locales"), "en"), "telegram")[1]
+    for name in ("Nasdaq Stock Market", "Mexican Stock Exchange", "Santiago Stock Exchange"):
+        assert name in payload.plain_text

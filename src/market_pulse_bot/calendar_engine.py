@@ -151,6 +151,7 @@ class SyntheticSchedule(MarketSchedule):
 
 def build_schedule(exchange: ExchangeConfig) -> MarketSchedule:
     if exchange.calendar_type == "exchange_calendars":
-        return ExchangeCalendarsSchedule(exchange.mic, exchange.timezone)
+        assert exchange.calendar_name is not None
+        return ExchangeCalendarsSchedule(exchange.calendar_name, exchange.timezone)
     assert exchange.synthetic is not None
     return SyntheticSchedule(exchange.synthetic, exchange.timezone)

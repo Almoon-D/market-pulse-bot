@@ -1,7 +1,3 @@
-# The 4 fully-worked anchor exchanges (Section 6) plus the 19 additional exchanges
-# scaffolded via 'python main.py init-config' and since researched and populated with
-# real, source-verified phase_windows (pre-market, opening/closing auctions, post-market).
-# See the phase-windows research summary for sources per exchange.
 exchanges:
 - name: NYSE
   mic: XNYS
@@ -28,6 +24,58 @@ exchanges:
     type: structured_feed
     url: https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts
     scope: single_stock
+  calendar_name: XNYS
+- name: Nasdaq Stock Market
+  mic: XNAS
+  calendar_type: exchange_calendars
+  calendar_name: XNYS
+  timezone: America/New_York
+  tz_label: ET
+  country_flag: 🇺🇸
+  currency: USD
+  region: America
+  phase_windows:
+  - phase: pre_market
+    anchor: session_open
+    start_offset_minutes: -330
+    end_offset_minutes: 0
+  - phase: closing_auction
+    anchor: session_close
+    start_offset_minutes: -10
+    end_offset_minutes: 0
+  - phase: post_market
+    anchor: session_close
+    start_offset_minutes: 0
+    end_offset_minutes: 240
+  incident_source:
+    type: manual
+    scope: market_wide
+- name: Mexican Stock Exchange
+  mic: XMEX
+  calendar_type: exchange_calendars
+  calendar_name: XMEX
+  timezone: America/Mexico_City
+  tz_label: CST
+  country_flag: 🇲🇽
+  currency: MXN
+  region: America
+  phase_windows: []
+  incident_source:
+    type: manual
+    scope: market_wide
+- name: Santiago Stock Exchange
+  mic: XSGO
+  calendar_type: exchange_calendars
+  calendar_name: XSGO
+  timezone: America/Santiago
+  tz_label: CLT/CLST
+  country_flag: 🇨🇱
+  currency: CLP
+  region: America
+  phase_windows: []
+  incident_source:
+    type: manual
+    scope: market_wide
 - name: Bolsa de Madrid
   mic: XMAD
   calendar_type: exchange_calendars
@@ -52,6 +100,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XMAD
 - name: Tokyo Stock Exchange
   mic: XTKS
   calendar_type: exchange_calendars
@@ -72,6 +121,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XTKS
 - name: South Pacific Stock Exchange
   mic: XSPX
   calendar_type: synthetic
@@ -116,6 +166,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XTSE
 - name: B3
   mic: BVMF
   calendar_type: exchange_calendars
@@ -136,6 +187,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: BVMF
 - name: London Stock Exchange
   mic: XLON
   calendar_type: exchange_calendars
@@ -160,6 +212,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XLON
 - name: Deutsche Börse Xetra
   mic: XETR
   calendar_type: exchange_calendars
@@ -180,6 +233,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XETR
 - name: Euronext Paris
   mic: XPAR
   calendar_type: exchange_calendars
@@ -204,6 +258,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XPAR
 - name: Euronext Amsterdam
   mic: XAMS
   calendar_type: exchange_calendars
@@ -228,6 +283,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XAMS
 - name: Euronext Milan
   mic: XMIL
   calendar_type: exchange_calendars
@@ -252,6 +308,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XMIL
 - name: SIX Swiss Exchange
   mic: XSWX
   calendar_type: exchange_calendars
@@ -272,6 +329,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XSWX
 - name: Hong Kong Exchange
   mic: XHKG
   calendar_type: exchange_calendars
@@ -292,6 +350,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XHKG
 - name: Shanghai Stock Exchange
   mic: XSHG
   calendar_type: exchange_calendars
@@ -312,6 +371,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XSHG
 - name: Shenzhen Stock Exchange
   mic: XSHE
   calendar_type: synthetic
@@ -364,6 +424,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XBOM
 - name: National Stock Exchange of India
   mic: XNSE
   calendar_type: synthetic
@@ -416,6 +477,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XKRX
 - name: Taiwan Stock Exchange
   mic: XTAI
   calendar_type: exchange_calendars
@@ -432,6 +494,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XTAI
 - name: Singapore Exchange
   mic: XSES
   calendar_type: exchange_calendars
@@ -456,6 +519,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XSES
 - name: Australian Securities Exchange
   mic: XASX
   calendar_type: exchange_calendars
@@ -480,6 +544,7 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XASX
 - name: Cboe Australia
   mic: CHIA
   calendar_type: synthetic
@@ -524,3 +589,4 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
+  calendar_name: XNZE
