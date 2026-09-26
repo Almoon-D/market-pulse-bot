@@ -47,8 +47,8 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 |---|---|---|---|
 | 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
 | 🇺🇸 Nasdaq Stock Market (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | Manual |
-| 🇲🇽 Mexican Stock Exchange (`XMEX`) | Mexico’s primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
-| 🇨🇱 Santiago Stock Exchange (`XSGO`) | Chile’s primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
+| 🇲🇽 Mexican Stock Exchange (`XMEX`) | Mexico's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
+| 🇨🇱 Santiago Stock Exchange (`XSGO`) | Chile's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
 | 🇨🇦 Toronto Stock Exchange (`XTSE`) | Canada's primary exchange, heavy in energy and mining names. | Pre-market, closing call | Manual |
 | 🇧🇷 B3 (`BVMF`) | Brazil's exchange; hours shift twice a year to stay aligned with US markets. | Pre-market, closing call | Manual |
 
