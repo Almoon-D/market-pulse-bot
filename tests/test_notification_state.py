@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from market_pulse_bot.notification_backend import (
+    MAX_RATE_LIMIT_WAIT,
     SLOT_ORDER,
     DiscordBackend,
     DiscordRef,
@@ -16,6 +17,7 @@ from market_pulse_bot.notification_backend import (
     StateStore,
     TelegramBackend,
     TelegramRef,
+    request_with_backoff,
     sync_messages,
 )
 from market_pulse_bot.text_formatter import MessagePayload
@@ -174,7 +176,6 @@ def test_failed_publish_resumes_in_order_on_the_next_pass(tmp_path: Path) -> Non
 
 class FixtureDiscordBackend(DiscordBackend):
     def __init__(self, client: httpx.AsyncClient) -> None:
-        self._webhook_url = "https://fixture.invalid/webhook"
         self._webhook_id = "123"
         self._webhook_token = "fixture"
         self._client = client
@@ -199,7 +200,7 @@ def test_discord_delete_treats_missing_message_as_deleted(status: int) -> None:
             await backend.delete(DiscordRef(backend="discord", message_id="55"))
 
     asyncio.run(run())
-    assert seen == [("DELETE", "/api/webhooks/123/fixture/messages/55")]
+    assert seen == [("DELETE", "/api/v10/webhooks/123/fixture/messages/55")]
 
 
 def test_discord_delete_raises_on_server_error() -> None:
@@ -277,3 +278,65 @@ def test_telegram_edit_of_a_deleted_message_is_reported_as_missing() -> None:
 
     with pytest.raises(MessageNotFoundError):
         asyncio.run(run())
+
+
+def _run_backoff(responses: list[httpx.Response], monkeypatch: pytest.MonkeyPatch) -> tuple[httpx.Response, list[float]]:
+    waits: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr("market_pulse_bot.notification_backend.asyncio.sleep", fake_sleep)
+    queue = list(responses)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return queue.pop(0)
+
+    async def run() -> httpx.Response:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await request_with_backoff(client, "POST", "https://fixture.invalid/x")
+
+    return asyncio.run(run()), waits
+
+
+def test_429_prefers_reset_after_seconds_over_millisecond_retry_after(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Regression: Discord answered Retry-After: 1760 (ms) and the bot slept 29 minutes."""
+    response, waits = _run_backoff(
+        [
+            httpx.Response(429, headers={"Retry-After": "1760", "X-RateLimit-Reset-After": "1.76"}),
+            httpx.Response(200),
+        ],
+        monkeypatch,
+    )
+    assert response.status_code == 200
+    assert waits == [1.76]
+
+
+def test_rate_limit_waits_are_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    _, waits = _run_backoff([httpx.Response(429, headers={"Retry-After": "1760"}), httpx.Response(200)], monkeypatch)
+    assert waits == [MAX_RATE_LIMIT_WAIT]
+
+
+def test_exhausted_bucket_is_waited_out_before_the_next_request(monkeypatch: pytest.MonkeyPatch) -> None:
+    response, waits = _run_backoff(
+        [httpx.Response(200, headers={"X-RateLimit-Remaining": "0", "X-RateLimit-Reset-After": "0.8"})],
+        monkeypatch,
+    )
+    assert response.status_code == 200
+    assert waits == [0.8]
+
+
+def test_discord_uses_the_versioned_api_even_for_an_unversioned_webhook_url() -> None:
+    seen: list[str] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"id": "1"})
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            url = "https://discord.com/api/" + "webhooks/123/fixture"
+            await DiscordBackend(url, client).publish(PAYLOADS[0])
+
+    asyncio.run(run())
+    assert seen == ["https://discord.com/api/v10/" + "webhooks/123/fixture?wait=true"]
