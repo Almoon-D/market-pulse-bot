@@ -23,10 +23,19 @@ TELEGRAM_MESSAGE_LIMIT = 4096
 
 MessageKind = Literal["legend", "alerts", "dashboard_amer_eu", "dashboard_asia_oc"]
 
-# Text is built once with these neutral bold markers; _markup() turns them
-# into each backend's own bold syntax.
-BOLD_OPEN = "\x02"
-BOLD_CLOSE = "\x03"
+# Text is built once with neutral style markers (bold = the situation,
+# italics = secondary data, underline = section titles); _markup() turns
+# them into each backend's own syntax.
+BOLD = ("\x02", "\x03")
+ITALIC = ("\x04", "\x05")
+UNDERLINE = ("\x06", "\x07")
+MARKUP: dict[str, dict[tuple[str, str], tuple[str, str]]] = {
+    "discord": {BOLD: ("**", "**"), ITALIC: ("*", "*"), UNDERLINE: ("__", "__")},
+    # Slack mrkdwn has no underline; titles stay bold there.
+    "slack": {BOLD: ("*", "*"), ITALIC: ("_", "_"), UNDERLINE: ("", "")},
+    # Telegram messages are sent with parse_mode=HTML.
+    "telegram": {BOLD: ("<b>", "</b>"), ITALIC: ("<i>", "</i>"), UNDERLINE: ("<u>", "</u>")},
+}
 
 
 class PayloadTooLargeError(RuntimeError):
@@ -106,16 +115,23 @@ _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 
 def _bold(text: str) -> str:
-    return f"{BOLD_OPEN}{text}{BOLD_CLOSE}"
+    return f"{BOLD[0]}{text}{BOLD[1]}"
+
+
+def _italic(text: str) -> str:
+    return f"{ITALIC[0]}{text}{ITALIC[1]}"
+
+
+def _heading(text: str) -> str:
+    return _bold(f"{UNDERLINE[0]}{text}{UNDERLINE[1]}")
 
 
 def _markup(text: str, backend: Backend) -> str:
-    if backend == "discord":
-        return text.replace(BOLD_OPEN, "**").replace(BOLD_CLOSE, "**")
-    if backend == "slack":
-        return text.replace(BOLD_OPEN, "*").replace(BOLD_CLOSE, "*")
-    # Telegram messages are sent with parse_mode=HTML.
-    return html.escape(text, quote=False).replace(BOLD_OPEN, "<b>").replace(BOLD_CLOSE, "</b>")
+    if backend == "telegram":
+        text = html.escape(text, quote=False)
+    for (open_marker, close_marker), (open_tag, close_tag) in MARKUP[backend].items():
+        text = text.replace(open_marker, open_tag).replace(close_marker, close_tag)
+    return text
 
 
 def _time(value: dt.datetime) -> str:
@@ -168,13 +184,14 @@ def render_exchange_line(
                 minutes=state.minutes_until,
                 time=_time(state.transition_time.astimezone(display_tz)),
             )
+        phrase = _bold(phrase)
     else:
         symbol = current
-        phrase = i18n.t(_phase_label_key(state))
+        phrase = _bold(i18n.t(_phase_label_key(state)))
         if state.next_phase is not None and state.transition_time is not None:
             when = _when(state.transition_time, state.native_now, display_tz, i18n)
             phrase += f" {NEXT_CHANGE_ARROW} {PHASE_EMOJI[state.next_phase]} {when}"
-    return f"{early}{symbol} {exchange.country_flag} {exchange.name} ({_bold(exchange.currency)}) — {phrase}"
+    return f"{early}{symbol} {exchange.country_flag} {exchange.name} ({_italic(exchange.currency)}) — {phrase}"
 
 
 def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -> str:
@@ -183,6 +200,7 @@ def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -
             "events.holiday_line",
             flag=event.country_flag,
             name=event.exchange_name,
+            status=_bold(i18n.t("phase.holiday")),
             date=_date(event.date, i18n),
         )
     assert event.early_close_time is not None
@@ -191,13 +209,14 @@ def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -
         "events.early_close_line",
         flag=event.country_flag,
         name=event.exchange_name,
+        status=_bold(i18n.t("legend.early_close_label")),
         date=_date(event.date, i18n),
         time=_time(display_time),
     )
 
 
 def render_legend_line(badge: str, label_key: str, description_key: str, i18n: I18n) -> str:
-    return f"{badge} {i18n.t(label_key)} — {i18n.t(description_key)}"
+    return f"{badge} {_bold(i18n.t(label_key))} — {i18n.t(description_key)}"
 
 
 def legend_lines_by_section(i18n: I18n) -> dict[LegendSection, list[str]]:
@@ -324,19 +343,16 @@ def build_legend_payload(i18n: I18n, backend: Backend) -> MessagePayload:
     intro = i18n.t("legend.intro")
     lines = legend_lines_by_section(i18n)
     sections = [section for section in LEGEND_SECTIONS if lines[section]]
-    text = f"{title}\n\n{intro}\n\n" + "\n\n".join(
-        f"— {i18n.t(LEGEND_SECTION_KEYS[section])} —\n" + "\n".join(lines[section])
+    body = f"{intro}\n\n" + "\n\n".join(
+        _heading(i18n.t(LEGEND_SECTION_KEYS[section])) + "\n" + "\n".join(lines[section])
         for section in sections
     )
     embed: dict[str, Any] | None = None
     if backend == "discord":
-        fields = [
-            field
-            for section in sections
-            for field in _discord_fields(i18n.t(LEGEND_SECTION_KEYS[section]), lines[section])
-        ]
-        embed = {"title": title, "description": intro, "fields": fields}
-    return _package("legend", text, backend, embed)
+        # One description rather than fields: Discord doesn't render
+        # markdown in field names, and the section titles are underlined.
+        embed = {"title": title, "description": _markup(body, "discord")}
+    return _package("legend", f"{title}\n\n{body}", backend, embed)
 
 
 def build_alerts_payload(
@@ -355,8 +371,8 @@ def build_alerts_payload(
     incidents = incident_lines or [i18n.t("alerts.no_incidents")]
     upcoming = [render_event_line(event, display_tz, i18n) for event in events] or [i18n.t("events.no_events")]
     text = (
-        f"{title}\n\n— {incidents_label} —\n" + "\n".join(incidents)
-        + f"\n\n— {events_label} —\n" + "\n".join(upcoming)
+        f"{title}\n\n{_heading(incidents_label)}\n" + "\n".join(incidents)
+        + f"\n\n{_heading(events_label)}\n" + "\n".join(upcoming)
         + f"\n\n{footer}"
     )
     embed: dict[str, Any] | None = None
@@ -380,7 +396,7 @@ def build_dashboard_payload(
     footer = _footer(now_utc, display_tz, i18n)
     labels = {region: i18n.t(f"region.{region.lower()}") for region in regions}
     sections = [
-        f"— {labels[region]} —\n" + ("\n".join(lines_by_region.get(region, [])) or "—")
+        f"{_heading(labels[region])}\n" + ("\n".join(lines_by_region.get(region, [])) or "—")
         for region in regions
     ]
     text = f"{title}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"

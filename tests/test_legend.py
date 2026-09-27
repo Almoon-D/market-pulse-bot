@@ -61,7 +61,23 @@ def test_legend_is_the_first_message_and_does_not_change_over_time() -> None:
     assert legends[0] == legends[1] == build_legend_payload(i18n, "discord")
 
 
-
 def test_legend_explains_the_next_change_arrow() -> None:
     i18n = I18n(LOCALES_DIR, "es")
-    assert f"→ {i18n.t('legend.next_change_label')} — " in build_legend_payload(i18n, "telegram").plain_text
+    assert f"→ <b>{i18n.t('legend.next_change_label')}</b> — " in build_legend_payload(i18n, "telegram").plain_text
+
+
+def test_legend_labels_are_bold_and_section_titles_bold_underlined() -> None:
+    i18n = I18n(LOCALES_DIR, "es")
+    embed = build_legend_payload(i18n, "discord").discord_embed
+    assert embed is not None and "fields" not in embed
+    description = embed["description"]
+    assert description.startswith(i18n.t("legend.intro"))
+    for key in ("legend.section_session", "legend.section_incident", "legend.section_annotation"):
+        assert f"\n**__{i18n.t(key)}__**\n" in description
+    assert "\n🟢 **Sesión regular** — " in description
+    assert "\n♦️ **Interrupción técnica/operativa** — " in description
+
+    telegram = build_legend_payload(i18n, "telegram").plain_text
+    assert f"<b><u>{i18n.t('legend.section_session')}</u></b>" in telegram
+    slack = build_legend_payload(i18n, "slack").plain_text
+    assert f"\n*{i18n.t('legend.section_session')}*\n" in slack

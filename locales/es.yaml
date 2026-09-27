@@ -38,8 +38,8 @@ region:
   oceania: "Oceanía"
 events:
   no_events: "Sin festivos oficiales ni cierres anticipados en los próximos 5 días hábiles."
-  holiday_line: "{flag} {name} — Festivo oficial ({date})"
-  early_close_line: "{flag} {name} — Cierre anticipado ({date}), a las {time}"
+  holiday_line: "{flag} {name} — {status} ({date})"
+  early_close_line: "{flag} {name} — {status} ({date}), a las {time}"
 alerts:
   incidents_section: "Suspensiones y cierres activos"
   no_incidents: "Ningún mercado suspendido ni cerrado de forma excepcional ahora mismo."
