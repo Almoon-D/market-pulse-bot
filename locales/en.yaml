@@ -28,7 +28,7 @@ transition:
 annotation:
   early_close_day: "shortened session"
 header:
-  events_title: "📅 Upcoming Events & Holidays — next 5 business days"
+  alerts_title: "⚠️ Market Alerts"
   dashboard_americas_eu_title: "🌎 Live Dashboard — Americas & Europe"
   dashboard_asia_oceania_title: "🌏 Live Dashboard — Asia & Oceania"
 region:
@@ -40,6 +40,10 @@ events:
   no_events: "No official holidays or early closes in the next 5 business days."
   holiday_line: "{flag} {name} — Official holiday ({date})"
   early_close_line: "{flag} {name} — Early close ({date}), at {time} ({native_time} {tz_label})"
+alerts:
+  incidents_section: "Active halts & closures"
+  no_incidents: "No exchange-wide halts or closures right now."
+  events_section: "Holidays & half days — next 5 business days"
 weekday:
   mon: "Mon"
   tue: "Tue"
@@ -52,7 +56,7 @@ footer:
   generated_at: "Updated: {time}"
 legend:
   title: "📖 Market Pulse Bot — Phase Legend"
-  intro: "Sent on request only (--send-legend) — never as part of the regular updates."
+  intro: "What every badge on the live dashboards means."
   section_session: "Session phases"
   section_incident: "Incident states"
   section_annotation: "Annotations"
@@ -70,4 +74,3 @@ legend:
   technical_halt_desc: "Full-exchange technical or operational halt."
   exceptional_closure_desc: "Circuit breaker, disaster, or regulator order — never a single-stock event."
   post_halt_reopening_desc: "The reopening call after a halt — duration can vary."
-  footer_note: "This message is static and won't self-update on its own."

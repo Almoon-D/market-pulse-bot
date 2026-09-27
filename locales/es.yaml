@@ -28,7 +28,7 @@ transition:
 annotation:
   early_close_day: "sesión reducida"
 header:
-  events_title: "📅 Próximos eventos y festivos — próximos 5 días hábiles"
+  alerts_title: "⚠️ Alertas de mercado"
   dashboard_americas_eu_title: "🌎 Panel en vivo — América y Europa"
   dashboard_asia_oceania_title: "🌏 Panel en vivo — Asia y Oceanía"
 region:
@@ -40,6 +40,10 @@ events:
   no_events: "Sin festivos oficiales ni cierres anticipados en los próximos 5 días hábiles."
   holiday_line: "{flag} {name} — Festivo oficial ({date})"
   early_close_line: "{flag} {name} — Cierre anticipado ({date}), a las {time} ({native_time} {tz_label})"
+alerts:
+  incidents_section: "Suspensiones y cierres activos"
+  no_incidents: "Ningún mercado suspendido ni cerrado de forma excepcional ahora mismo."
+  events_section: "Festivos y sesiones reducidas — próximos 5 días hábiles"
 weekday:
   mon: "lun"
   tue: "mar"
@@ -52,7 +56,7 @@ footer:
   generated_at: "Actualizado: {time}"
 legend:
   title: "📖 Market Pulse Bot — Leyenda de fases"
-  intro: "Se envía solo a petición (--send-legend) — nunca como parte de las actualizaciones periódicas."
+  intro: "Qué significa cada símbolo de los paneles en vivo."
   section_session: "Fases de sesión"
   section_incident: "Incidencias"
   section_annotation: "Anotaciones"
@@ -70,4 +74,3 @@ legend:
   technical_halt_desc: "Interrupción técnica u operativa de todo el mercado."
   exceptional_closure_desc: "Circuit breaker, catástrofe u orden del regulador — nunca un evento de una sola acción."
   post_halt_reopening_desc: "La subasta de reapertura tras una suspensión — la duración puede variar."
-  footer_note: "Este mensaje es estático y no se actualiza solo."

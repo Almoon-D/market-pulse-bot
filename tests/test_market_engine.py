@@ -192,3 +192,21 @@ def test_new_americas_native_calendars(mic: str, timezone: str) -> None:
     local = dt.datetime(2026, 9, 22, 12, 0, tzinfo=ZoneInfo(timezone))
     assert schedule.is_session(local.date())
     assert compute_phase_state(cfg, schedule, local.astimezone(dt.UTC), None, False).current_phase == Phase.REGULAR
+
+
+@pytest.mark.parametrize(
+    ("day", "close"),
+    [
+        (dt.date(2026, 3, 6), dt.time(18, 0)),   # US on standard time
+        (dt.date(2026, 3, 9), dt.time(17, 0)),   # US on daylight saving time
+        (dt.date(2026, 10, 30), dt.time(17, 0)),
+        (dt.date(2026, 11, 3), dt.time(18, 0)),
+    ],
+)
+def test_b3_close_follows_us_daylight_saving(day: dt.date, close: dt.time) -> None:
+    cfg = _configs()["BVMF"]
+    schedule = build_schedule(cfg)
+    assert schedule.session_close(day).timetz().replace(tzinfo=None) == close
+    closing_call_start = schedule.session_close(day) - dt.timedelta(minutes=5)
+    state = compute_phase_state(cfg, schedule, closing_call_start.astimezone(dt.UTC), None, True)
+    assert state.phase_variant == "closing_auction"

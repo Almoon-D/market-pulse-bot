@@ -353,4 +353,5 @@ def build_upcoming_events(
                         exchange.tz_label, "early_close", current, schedule.session_close(current)
                     ))
             current += dt.timedelta(days=1)
-    return sorted(result, key=lambda event: (event.date, event.region, event.exchange_name))
+    # Stable sort: same-day events keep the configured roster order.
+    return sorted(result, key=lambda event: event.date)

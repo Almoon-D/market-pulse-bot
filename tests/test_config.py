@@ -76,3 +76,29 @@ def test_nasdaq_owns_the_structured_halt_feed() -> None:
     assert exchanges["XNAS"].incident_source.type == "structured_feed"
     assert exchanges["XNAS"].incident_source.scope == "single_stock"
     assert exchanges["XNYS"].incident_source.type == "manual"
+
+
+def test_roster_order_and_display_names() -> None:
+    exchanges = load_exchanges(Path("config/exchanges.yaml"))
+    by_region: dict[str, list[str]] = {}
+    for exchange in exchanges:
+        by_region.setdefault(exchange.region, []).append(exchange.name)
+    assert list(by_region) == ["America", "Europe", "Asia", "Oceania"]
+    assert [exchange.region for exchange in exchanges] == sorted(
+        (exchange.region for exchange in exchanges), key=list(by_region).index
+    )
+    assert by_region["America"] == [
+        "NYSE", "Nasdaq", "Toronto Stock Ex.", "B3 Bolsa do Brasil", "Bolsa de Méjico", "Bolsa de Santiago",
+    ]
+    assert by_region["Europe"] == [
+        "London Stock Ex.", "Bolsa de Madrid", "Deutsche Börse Xetra", "Euronext Paris",
+        "Euronext Amsterdam", "Euronext Milán", "SIX Swiss Ex.",
+    ]
+    assert by_region["Asia"] == [
+        "Tokyo Stock Exchange", "Hong Kong Exchange", "Shanghai Stock Exchange", "Shenzhen Stock Exchange",
+        "BSE India", "National Stock Exchange of India", "Korea Exchange", "Taiwan Stock Exchange",
+        "Singapore Exchange",
+    ]
+    assert by_region["Oceania"] == [
+        "Australian Securities Ex.", "Cboe Australia", "New Zealand", "South Pacific Stock Ex.",
+    ]

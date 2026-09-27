@@ -2,15 +2,13 @@
 
 **Know exactly what every major stock exchange is doing, right now, without refreshing a single tab.**
 
-Market Pulse Bot watches 26 exchanges across the Americas, Europe, Asia, and Oceania and keeps three messages — a 5-day holiday forecast and two live regional dashboards — permanently up to date in your Discord, Slack, or Telegram. Pre-market, opening auctions, continuous trading, lunch breaks, closing auctions, post-market, holidays, and exceptional halts — all tracked automatically, all shown in the same badge language everywhere you look.
+Market Pulse Bot watches 26 exchanges across the Americas, Europe, Asia, and Oceania and keeps four messages — the badge legend, an alerts feed (exchange-wide halts plus a 5-day holiday and half-day forecast), and two live regional dashboards — permanently up to date in your Discord, Slack, or Telegram. Pre-market, opening auctions, continuous trading, lunch breaks, closing auctions, post-market, holidays, and exceptional halts — all tracked automatically, all shown in the same badge language everywhere you look.
 
 Built for traders who need to know when a market opens without doing timezone math, for desks that want one shared source of truth instead of eleven browser tabs, and for anyone who has ever missed a closing auction because they were watching the wrong clock.
 
-```
-⚫️🔜🟣 🇺🇸 NYSE (USD) — Pre-market in 8 minutes, at 08:30 (04:30 ET)
-🟢 🇪🇸 Bolsa de Madrid (EUR) — Regular session (14:32 CEST)
-🔷 🇯🇵 Tokyo Stock Exchange (JPY) — Reopening underway — ≥5 min, possible extension
-```
+> ⚫️🔜🟣 🇺🇸 NYSE (**USD**) — Pre-market in 8 minutes, at 10:00 (04:00 ET) (03:52 ET)<br>
+> 🟢 🇪🇸 Bolsa de Madrid (**EUR**) — Regular session (14:32 CET/CEST)<br>
+> 🔷🔜🟢 🇯🇵 Tokyo Stock Exchange (**JPY**) — Reopening underway — ≥5 min, possible extension (13:05 JST)
 
 Available in English, Spanish, German, and French. Free, open-source, self-hosted — your data never leaves your own server.
 
@@ -18,7 +16,7 @@ Available in English, Spanish, German, and French. Free, open-source, self-hoste
 
 ## Phase & badge legend
 
-Every exchange, in every language, uses exactly these badges — nothing more, nothing regional. Run `market-pulse-bot send-legend` any time to post this table (with real translations) to your own channel; it's never sent automatically.
+Every exchange, in every language, uses exactly these badges — nothing more, nothing regional. This table (translated into your configured language) is always the first of the four messages, so the explanation sits right above the dashboards.
 
 | Badge | Phase | What it means |
 |---|---|---|
@@ -46,23 +44,23 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
 | 🇺🇸 NYSE (`XNYS`) | The world's largest exchange by market cap, home to most S&P 500 blue chips. | Pre-market, closing auction, post-market | Manual |
-| 🇺🇸 Nasdaq Stock Market (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
-| 🇲🇽 Mexican Stock Exchange (`XMEX`) | Mexico's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
-| 🇨🇱 Santiago Stock Exchange (`XSGO`) | Chile's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
-| 🇨🇦 Toronto Stock Exchange (`XTSE`) | Canada's primary exchange, heavy in energy and mining names. | Pre-market, closing call | Manual |
-| 🇧🇷 B3 (`BVMF`) | Brazil's exchange; hours shift twice a year to stay aligned with US markets. | Pre-market, closing call | Manual |
+| 🇺🇸 Nasdaq (`XNAS`) | Separate exchange; `exchange_calendars` currently aliases XNAS to XNYS, and will use a dedicated XNAS calendar if a future compatible release provides one. | Pre-market, closing auction, post-market | NASDAQ feed (single-stock halts only, logged) + manual override |
+| 🇨🇦 Toronto Stock Ex. (`XTSE`) | Canada's primary exchange, heavy in energy and mining names. | Pre-market, closing call | Manual |
+| 🇧🇷 B3 Bolsa do Brasil (`BVMF`) | Brazil's exchange; closes at 17:00 BRT while the US is on daylight saving time and at 18:00 otherwise, to stay aligned with US markets. | Pre-market, closing call | Manual |
+| 🇲🇽 Bolsa de Méjico (`XMEX`) | Mexico's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
+| 🇨🇱 Bolsa de Santiago (`XSGO`) | Chile's primary equities exchange. | Native calendar; no unverified extended phases configured | Manual |
 
 ### Europe
 
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
+| 🇬🇧 London Stock Ex. (`XLON`) | One of the world's oldest exchanges; home to the FTSE 100. | Opening auction, closing auction, post-market crossing session | Manual |
 | 🇪🇸 Bolsa de Madrid (`XMAD`) | Spain's primary market, home to the IBEX 35. | Opening auction, closing auction (runs *after* the reported close), post-market | Manual |
-| 🇬🇧 London Stock Exchange (`XLON`) | One of the world's oldest exchanges; home to the FTSE 100. | Opening auction, closing auction, post-market crossing session | Manual |
 | 🇩🇪 Deutsche Börse Xetra (`XETR`) | Germany's electronic market, home to the DAX. | Opening auction, closing auction | Manual |
 | 🇫🇷 Euronext Paris (`XPAR`) | France's market and Euronext's largest venue; a genuinely long ~1h45m opening call. | Opening auction, closing auction, Trading At Last | Manual |
 | 🇳🇱 Euronext Amsterdam (`XAMS`) | The world's oldest stock exchange, now part of the pan-European Euronext group. | Opening auction, closing auction, Trading At Last | Manual |
-| 🇮🇹 Euronext Milan (`XMIL`) | Italy's exchange, home to the FTSE MIB, joined Euronext in 2021. | Opening auction, closing auction, Trading At Last | Manual |
-| 🇨🇭 SIX Swiss Exchange (`XSWX`) | Switzerland's primary exchange. | Closing auction, Trading-At-Last window | Manual |
+| 🇮🇹 Euronext Milán (`XMIL`) | Italy's exchange, home to the FTSE MIB, joined Euronext in 2021. | Opening auction, closing auction, Trading At Last | Manual |
+| 🇨🇭 SIX Swiss Ex. (`XSWX`) | Switzerland's primary exchange. | Closing auction, Trading-At-Last window | Manual |
 
 ### Asia
 
@@ -84,10 +82,10 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
-| 🇫🇯 South Pacific Stock Exchange (`XSPX`) | Fiji's small, synthetic-calendar market. | Simple continuous session — genuinely has no auction structure | Manual |
-| 🇦🇺 Australian Securities Exchange (`XASX`) | Australia's primary exchange. | Pre-open, opening/closing single-price auctions, post-close | Manual |
+| 🇦🇺 Australian Securities Ex. (`XASX`) | Australia's primary exchange. | Pre-open, opening/closing single-price auctions, post-close | Manual |
 | 🇦🇺 Cboe Australia (`CHIA`) | A second, competing order book for the same ASX-listed stocks. | Continuous only — Cboe itself confirms no market-wide auction for the securities it trades | Manual |
-| 🇳🇿 New Zealand Exchange (`XNZE`) | New Zealand's primary exchange. | Pre-open, closing auction (after the reported close) | Manual |
+| 🇳🇿 New Zealand (`XNZE`) | New Zealand's primary exchange. | Pre-open, closing auction (after the reported close) | Manual |
+| 🇫🇯 South Pacific Stock Ex. (`XSPX`) | Fiji's small, synthetic-calendar market. | Simple continuous session — genuinely has no auction structure | Manual |
 
 ---
 
@@ -102,7 +100,7 @@ cp .env.example .env
 # Edit .env: pick discord, slack, or telegram, and add its credentials.
 
 python main.py init-config   # normalizes config/exchanges.yaml (already ships all 26)
-python main.py               # one-shot: publish/update the three messages once
+python main.py               # one-shot: publish/update the four messages once
 ```
 
 For continuous operation:
@@ -112,14 +110,6 @@ python main.py --loop --interval 30 --incident-interval 90
 ```
 
 The systemd unit in `deploy/market-pulse-bot.service` is the recommended way to run this in production — see [Deployment](#deployment).
-
-### Post the phase legend
-
-```bash
-python main.py send-legend
-```
-
-Posts the phase/badge legend table (translated into whichever `language` your `.env` selects) to your configured channel, once, on request — it is never sent as part of the regular updates. On Telegram and Slack the bot will also try to pin it if it has the right permissions/scope; on Discord it publishes normally but can't pin, because Discord's webhook-only design (deliberately simple, no bot login required) has no access to the pin endpoint at all — that's a platform-level limitation, not a bug to report.
 
 ---
 
@@ -133,7 +123,7 @@ Posts the phase/badge legend table (translated into whichever `language` your `.
 
 ## Configuration
 
-Full reference details — the `phase_windows` schema, the `incident_source` YAML format, the `data/state.json` three-slot structure, synthetic-calendar definitions, and every CLI flag — are documented inline in `config/exchanges.yaml`, `.env.example`, and each module's docstring. The short version:
+Full reference details — the `phase_windows` schema, the `incident_source` YAML format, the `data/state.json` four-slot structure, synthetic-calendar definitions, and every CLI flag — are documented inline in `config/exchanges.yaml`, `.env.example`, and each module's docstring. The short version:
 
 ```bash
 cp .env.example .env   # pick a backend, add credentials, pick a language
@@ -188,7 +178,9 @@ market-pulse-bot/
 │   ├── notification_backend.py
 │   └── text_formatter.py
 ├── tests/
-└── .github/workflows/ci.yml
+└── .github/workflows/
+    ├── ci.yml
+    └── publish-discord.yaml
 ```
 
 ## Validation
@@ -211,6 +203,18 @@ sudo systemctl enable --now market-pulse-bot
 ```
 
 This runs `main.py --loop --interval 30 --incident-interval 90` continuously and is the recommended mode for reliable 30-second updates. `deploy/scheduler-example.sh` is available for cron-driven one-shot mode instead, but is explicitly best-effort — see the comments in that file for why sub-5-minute cron scheduling isn't reliable enough for this system's shortest pre-notice windows.
+
+The four messages always appear in the same order — legend, alerts, Americas & Europe, Asia & Oceania. Existing messages are edited in place; if one is deleted, the bot re-posts it together with every message below it, so the order is restored.
+
+### GitHub Actions (no server needed)
+
+`.github/workflows/publish-discord.yaml` runs the same loop on GitHub's runners, using the `MPB_DISCORD_WEBHOOK_URL` repository secret:
+
+- Each run keeps the messages live for about 5.5 hours (`--loop --max-runtime 19800`), then starts the next run itself, before GitHub's 6-hour job limit.
+- An hourly scheduled run acts as a watchdog. It restarts the chain if it ever breaks, and exits immediately while a run is already publishing. Plain `*/5` cron schedules aren't used because GitHub often delays them by hours.
+- The Discord message ids (`data/state.json`) are kept in the Actions cache, not committed anywhere, so no extra branch is needed.
+
+Public repositories get these Actions minutes for free. GitHub pauses scheduled workflows in repositories with no activity for 60 days; if that happens, re-enable the workflow from the Actions tab.
 
 ## License
 
