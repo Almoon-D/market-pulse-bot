@@ -88,7 +88,6 @@ class UpcomingEvent:
     exchange_name: str
     region: str
     country_flag: str
-    tz_label: str
     event_type: Literal["holiday", "early_close"]
     date: dt.date
     early_close_time: dt.datetime | None
@@ -235,8 +234,8 @@ def _scheduled_state(
     intervals = _session_intervals(exchange, schedule, today)
     for index, interval in enumerate(intervals):
         if interval.start <= now_local < interval.end:
-            if index + 1 < len(intervals):
-                target = intervals[index + 1]
+            target = intervals[index + 1] if index + 1 < len(intervals) else None
+            if target is not None and target.start == interval.end:
                 return (
                     interval.phase,
                     interval.variant,
@@ -245,20 +244,19 @@ def _scheduled_state(
                     target.start,
                     _transition_kind(interval, target),
                 )
-            next_phase, next_variant, next_time, kind = _next_session_transition(
-                exchange, schedule, today + dt.timedelta(days=1)
-            )
-            return interval.phase, interval.variant, next_phase, next_variant, next_time, kind
+            # Last phase of the day (or followed by a gap): the market closes
+            # when it ends, before anything else happens.
+            return interval.phase, interval.variant, Phase.CLOSED, None, interval.end, TransitionKind.TO_CLOSED
 
-    if now_local < intervals[0].start:
-        first = intervals[0]
-        if first.variant == "pre_market":
+    upcoming = next((interval for interval in intervals if interval.start > now_local), None)
+    if upcoming is not None:
+        if upcoming.variant == "pre_market":
             kind = TransitionKind.TO_PRE_MARKET
-        elif first.variant == "opening_auction":
+        elif upcoming.variant == "opening_auction":
             kind = TransitionKind.TO_OPENING_AUCTION
         else:
             kind = TransitionKind.TO_REGULAR_DIRECT
-        return Phase.CLOSED, None, first.phase, first.variant, first.start, kind
+        return Phase.CLOSED, None, upcoming.phase, upcoming.variant, upcoming.start, kind
 
     next_phase, next_variant, next_time, kind = _next_session_transition(
         exchange, schedule, today + dt.timedelta(days=1)
@@ -345,12 +343,12 @@ def build_upcoming_events(
                 if not schedule.is_session(current):
                     result.append(UpcomingEvent(
                         exchange.name, exchange.region, exchange.country_flag,
-                        exchange.tz_label, "holiday", current, None
+                        "holiday", current, None
                     ))
                 elif schedule.is_early_close(current):
                     result.append(UpcomingEvent(
                         exchange.name, exchange.region, exchange.country_flag,
-                        exchange.tz_label, "early_close", current, schedule.session_close(current)
+                        "early_close", current, schedule.session_close(current)
                     ))
             current += dt.timedelta(days=1)
     # Stable sort: same-day events keep the configured roster order.

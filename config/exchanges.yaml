@@ -3,7 +3,6 @@ exchanges:
   mic: XNYS
   calendar_type: exchange_calendars
   timezone: America/New_York
-  tz_label: ET
   country_flag: 🇺🇸
   currency: USD
   region: America
@@ -27,7 +26,6 @@ exchanges:
   mic: XNAS
   calendar_type: exchange_calendars
   timezone: America/New_York
-  tz_label: ET
   country_flag: 🇺🇸
   currency: USD
   region: America
@@ -52,7 +50,6 @@ exchanges:
   mic: XTSE
   calendar_type: exchange_calendars
   timezone: America/Toronto
-  tz_label: ET
   country_flag: 🇨🇦
   currency: CAD
   region: America
@@ -72,7 +69,6 @@ exchanges:
   mic: BVMF
   calendar_type: exchange_calendars
   timezone: America/Sao_Paulo
-  tz_label: BRT
   country_flag: 🇧🇷
   currency: BRL
   region: America
@@ -95,7 +91,6 @@ exchanges:
   mic: XMEX
   calendar_type: exchange_calendars
   timezone: America/Mexico_City
-  tz_label: CST
   country_flag: 🇲🇽
   currency: MXN
   region: America
@@ -107,7 +102,6 @@ exchanges:
   mic: XSGO
   calendar_type: exchange_calendars
   timezone: America/Santiago
-  tz_label: CLT/CLST
   country_flag: 🇨🇱
   currency: CLP
   region: America
@@ -119,7 +113,6 @@ exchanges:
   mic: XLON
   calendar_type: exchange_calendars
   timezone: Europe/London
-  tz_label: GMT/BST
   country_flag: 🇬🇧
   currency: GBP
   region: Europe
@@ -143,7 +136,6 @@ exchanges:
   mic: XMAD
   calendar_type: exchange_calendars
   timezone: Europe/Madrid
-  tz_label: CET/CEST
   country_flag: 🇪🇸
   currency: EUR
   region: Europe
@@ -167,7 +159,6 @@ exchanges:
   mic: XETR
   calendar_type: exchange_calendars
   timezone: Europe/Berlin
-  tz_label: CET/CEST
   country_flag: 🇩🇪
   currency: EUR
   region: Europe
@@ -187,7 +178,6 @@ exchanges:
   mic: XPAR
   calendar_type: exchange_calendars
   timezone: Europe/Paris
-  tz_label: CET/CEST
   country_flag: 🇫🇷
   currency: EUR
   region: Europe
@@ -211,7 +201,6 @@ exchanges:
   mic: XAMS
   calendar_type: exchange_calendars
   timezone: Europe/Amsterdam
-  tz_label: CET/CEST
   country_flag: 🇳🇱
   currency: EUR
   region: Europe
@@ -235,7 +224,6 @@ exchanges:
   mic: XMIL
   calendar_type: exchange_calendars
   timezone: Europe/Rome
-  tz_label: CET/CEST
   country_flag: 🇮🇹
   currency: EUR
   region: Europe
@@ -259,7 +247,6 @@ exchanges:
   mic: XSWX
   calendar_type: exchange_calendars
   timezone: Europe/Zurich
-  tz_label: CET/CEST
   country_flag: 🇨🇭
   currency: CHF
   region: Europe
@@ -275,11 +262,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Tokyo Stock Exchange
+- name: Tokyo Stock Ex.
   mic: XTKS
   calendar_type: exchange_calendars
   timezone: Asia/Tokyo
-  tz_label: JST
   country_flag: 🇯🇵
   currency: JPY
   region: Asia
@@ -295,11 +281,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Hong Kong Exchange
+- name: Hong Kong Ex.
   mic: XHKG
   calendar_type: exchange_calendars
   timezone: Asia/Hong_Kong
-  tz_label: HKT
   country_flag: 🇭🇰
   currency: HKD
   region: Asia
@@ -315,11 +300,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Shanghai Stock Exchange
+- name: Shanghai Stock Ex.
   mic: XSHG
   calendar_type: exchange_calendars
   timezone: Asia/Shanghai
-  tz_label: CST
   country_flag: 🇨🇳
   currency: CNY
   region: Asia
@@ -335,11 +319,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Shenzhen Stock Exchange
+- name: Shenzhen Stock Ex.
   mic: XSHE
   calendar_type: synthetic
   timezone: Asia/Shanghai
-  tz_label: CST
   country_flag: 🇨🇳
   currency: CNY
   region: Asia
@@ -371,7 +354,6 @@ exchanges:
   mic: XBOM
   calendar_type: exchange_calendars
   timezone: Asia/Kolkata
-  tz_label: IST
   country_flag: 🇮🇳
   currency: INR
   region: Asia
@@ -387,11 +369,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: National Stock Exchange of India
+- name: NSE India
   mic: XNSE
   calendar_type: synthetic
   timezone: Asia/Kolkata
-  tz_label: IST
   country_flag: 🇮🇳
   currency: INR
   region: Asia
@@ -419,11 +400,10 @@ exchanges:
     - 3
     - 4
     holidays: []
-- name: Korea Exchange
+- name: Korea Ex.
   mic: XKRX
   calendar_type: exchange_calendars
   timezone: Asia/Seoul
-  tz_label: KST
   country_flag: 🇰🇷
   currency: KRW
   region: Asia
@@ -439,11 +419,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Taiwan Stock Exchange
+- name: Taiwan Stock Ex.
   mic: XTAI
   calendar_type: exchange_calendars
   timezone: Asia/Taipei
-  tz_label: CST
   country_flag: 🇹🇼
   currency: TWD
   region: Asia
@@ -455,11 +434,10 @@ exchanges:
   incident_source:
     type: manual
     scope: market_wide
-- name: Singapore Exchange
+- name: Singapore Ex.
   mic: XSES
   calendar_type: exchange_calendars
   timezone: Asia/Singapore
-  tz_label: SGT
   country_flag: 🇸🇬
   currency: SGD
   region: Asia
@@ -483,7 +461,6 @@ exchanges:
   mic: XASX
   calendar_type: exchange_calendars
   timezone: Australia/Sydney
-  tz_label: AEST/AEDT
   country_flag: 🇦🇺
   currency: AUD
   region: Oceania
@@ -507,7 +484,6 @@ exchanges:
   mic: CHIA
   calendar_type: synthetic
   timezone: Australia/Sydney
-  tz_label: AEST/AEDT
   country_flag: 🇦🇺
   currency: AUD
   region: Oceania
@@ -531,7 +507,6 @@ exchanges:
   mic: XNZE
   calendar_type: exchange_calendars
   timezone: Pacific/Auckland
-  tz_label: NZST/NZDT
   country_flag: 🇳🇿
   currency: NZD
   region: Oceania
@@ -551,7 +526,6 @@ exchanges:
   mic: XSPX
   calendar_type: synthetic
   timezone: Pacific/Fiji
-  tz_label: FJT
   country_flag: 🇫🇯
   currency: FJD
   region: Oceania

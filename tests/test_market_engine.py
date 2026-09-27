@@ -210,3 +210,27 @@ def test_b3_close_follows_us_daylight_saving(day: dt.date, close: dt.time) -> No
     closing_call_start = schedule.session_close(day) - dt.timedelta(minutes=5)
     state = compute_phase_state(cfg, schedule, closing_call_start.astimezone(dt.UTC), None, True)
     assert state.phase_variant == "closing_auction"
+
+
+
+@pytest.mark.parametrize(
+    ("mic", "local", "closes_at"),
+    [
+        ("XMAD", dt.datetime(2026, 9, 29, 17, 40, tzinfo=ZoneInfo("Europe/Madrid")), dt.time(17, 45)),  # after post-market
+        ("XMEX", dt.datetime(2026, 9, 29, 14, 58, tzinfo=ZoneInfo("America/Mexico_City")), dt.time(15, 0)),  # no extra phases
+        ("XTKS", dt.datetime(2026, 9, 29, 15, 27, tzinfo=ZoneInfo("Asia/Tokyo")), dt.time(15, 30)),  # after closing auction
+    ],
+)
+def test_last_phase_of_the_day_is_followed_by_the_close(mic: str, local: dt.datetime, closes_at: dt.time) -> None:
+    cfg = _configs()[mic]
+    schedule = build_schedule(cfg)
+    state = compute_phase_state(cfg, schedule, local.astimezone(dt.UTC), None, True)
+    assert state.next_phase == Phase.CLOSED
+    assert state.transition_kind == TransitionKind.TO_CLOSED
+    assert state.transition_time is not None and state.transition_time.timetz().replace(tzinfo=None) == closes_at
+    assert state.show_transition is True
+
+    after = dt.datetime.combine(local.date(), closes_at, tzinfo=local.tzinfo) + dt.timedelta(minutes=1)
+    state = compute_phase_state(cfg, schedule, after.astimezone(dt.UTC), None, True)
+    assert state.current_phase == Phase.CLOSED
+    assert state.transition_time is not None and state.transition_time.date() > local.date()

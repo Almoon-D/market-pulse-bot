@@ -59,3 +59,9 @@ def test_legend_is_the_first_message_and_does_not_change_over_time() -> None:
         legends.append(build_all_payloads(exchanges, states, [], now, ZoneInfo("Europe/Madrid"), i18n, "discord")[0])
     assert legends[0].kind == "legend"
     assert legends[0] == legends[1] == build_legend_payload(i18n, "discord")
+
+
+
+def test_legend_explains_the_next_change_arrow() -> None:
+    i18n = I18n(LOCALES_DIR, "es")
+    assert f"→ {i18n.t('legend.next_change_label')} — " in build_legend_payload(i18n, "telegram").plain_text

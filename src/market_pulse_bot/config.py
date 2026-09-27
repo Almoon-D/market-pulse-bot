@@ -107,7 +107,6 @@ class ExchangeConfig(BaseModel):
     mic: str = Field(min_length=4, max_length=4)
     calendar_type: CalendarType
     timezone: str
-    tz_label: str
     country_flag: str
     currency: str = Field(min_length=3, max_length=3)
     region: Region
