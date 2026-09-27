@@ -38,8 +38,8 @@ region:
   oceania: "Ozeanien"
 events:
   no_events: "Keine offiziellen Feiertage oder verkürzten Handelstage in den nächsten 5 Handelstagen."
-  holiday_line: "{flag} {name} — Offizieller Feiertag ({date})"
-  early_close_line: "{flag} {name} — Verkürzte Sitzung ({date}), um {time}"
+  holiday_line: "{flag} {name} — {status} ({date})"
+  early_close_line: "{flag} {name} — {status} ({date}), um {time}"
 alerts:
   incidents_section: "Aktive Aussetzungen & Schließungen"
   no_incidents: "Derzeit keine börsenweiten Aussetzungen oder Schließungen."

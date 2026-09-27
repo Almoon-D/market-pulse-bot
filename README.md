@@ -6,9 +6,9 @@ Market Pulse Bot watches 26 exchanges across the Americas, Europe, Asia, and Oce
 
 Built for traders who need to know when a market opens without doing timezone math, for desks that want one shared source of truth instead of eleven browser tabs, and for anyone who has ever missed a closing auction because they were watching the wrong clock.
 
-> ⚫️🔜🟣 🇺🇸 NYSE (**USD**) — Pre-market in 8 minutes, at 10:00<br>
-> 🟢 🇪🇸 Bolsa de Madrid (**EUR**) — Regular session → 🔵 17:30<br>
-> ⚫️ 🇯🇵 Tokyo Stock Ex. (**JPY**) — Closed → 🔵 Wed 01:00
+> ⚫️🔜🟣 🇺🇸 NYSE (*USD*) — **Pre-market in 8 minutes, at 10:00**<br>
+> 🟢 🇪🇸 Bolsa de Madrid (*EUR*) — **Regular session** → 🔵 17:30<br>
+> ⚫️ 🇯🇵 Tokyo Stock Ex. (*JPY*) — **Closed** → 🔵 Wed 01:00
 
 Available in English, Spanish, German, and French. Free, open-source, self-hosted — your data never leaves your own server.
 
@@ -16,7 +16,7 @@ Available in English, Spanish, German, and French. Free, open-source, self-hoste
 
 ## Phase & badge legend
 
-Every exchange, in every language, uses exactly these badges — nothing more, nothing regional. This table (translated into your configured language) is always the first of the four messages, so the explanation sits right above the dashboards.
+Every exchange, in every language, uses exactly these badges — nothing more, nothing regional. This table (translated into your configured language) is always the first of the four messages, so the explanation sits right above the dashboards. Across all messages, **bold** is always the situation (the phase, a countdown, a halt, a holiday or half day) and *italics* mark secondary data such as the currency.
 
 | Badge | Phase | What it means |
 |---|---|---|

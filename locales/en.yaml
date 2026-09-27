@@ -38,8 +38,8 @@ region:
   oceania: "Oceania"
 events:
   no_events: "No official holidays or early closes in the next 5 business days."
-  holiday_line: "{flag} {name} — Official holiday ({date})"
-  early_close_line: "{flag} {name} — Early close ({date}), at {time}"
+  holiday_line: "{flag} {name} — {status} ({date})"
+  early_close_line: "{flag} {name} — {status} ({date}), at {time}"
 alerts:
   incidents_section: "Active halts & closures"
   no_incidents: "No exchange-wide halts or closures right now."
