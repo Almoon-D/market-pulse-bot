@@ -105,6 +105,21 @@ class MessageNotFoundError(RuntimeError):
     pass
 
 
+# Longest single rate-limit pause. The render loop runs every 30 s, so a
+# longer block would only stall it; the next pass retries instead.
+MAX_RATE_LIMIT_WAIT = 60.0
+
+
+def _header_seconds(response: httpx.Response, name: str) -> float | None:
+    raw = response.headers.get(name)
+    if raw is None:
+        return None
+    try:
+        return min(max(0.0, float(raw)), MAX_RATE_LIMIT_WAIT)
+    except ValueError:
+        return None
+
+
 async def request_with_backoff(
     client: httpx.AsyncClient,
     method: str,
@@ -117,13 +132,21 @@ async def request_with_backoff(
     for attempt in range(retries):
         response = await client.request(method, url, **kwargs)
         if response.status_code != 429:
+            # Discord announces an exhausted bucket up front; wait it out so
+            # the next request (e.g. the next of the four messages) isn't a 429.
+            if response.headers.get("X-RateLimit-Remaining") == "0":
+                wait = _header_seconds(response, "X-RateLimit-Reset-After")
+                if wait:
+                    await asyncio.sleep(wait)
             return response
         if attempt == retries - 1:
             break
-        raw = response.headers.get("Retry-After")
-        try:
-            wait = max(0.0, float(raw)) if raw is not None else delay
-        except ValueError:
+        # Prefer Discord's X-RateLimit-Reset-After (always seconds) over
+        # Retry-After, which some APIs report in milliseconds.
+        wait = _header_seconds(response, "X-RateLimit-Reset-After")
+        if wait is None:
+            wait = _header_seconds(response, "Retry-After")
+        if wait is None:
             wait = delay
         logger.warning("429 from %s; waiting %.1fs before retry %d/%d", url, wait, attempt + 1, retries)
         await asyncio.sleep(wait)
@@ -149,7 +172,6 @@ class DiscordBackend(NotificationBackend):
         parts = [part for part in parsed.path.split("/") if part]
         if parsed.scheme != "https" or parsed.netloc not in {"discord.com", "discordapp.com"} or len(parts) < 4 or parts[-3] != "webhooks":
             raise ValueError("Discord webhook URL must contain /api/webhooks/{id}/{token}")
-        self._webhook_url = webhook_url.rstrip("/")
         self._webhook_id = parts[-2]
         self._webhook_token = parts[-1]
         self._client = client
@@ -158,7 +180,7 @@ class DiscordBackend(NotificationBackend):
         if payload.discord_embed is None:
             raise ValueError("Discord payload missing embed")
         response = await request_with_backoff(
-            self._client, "POST", f"{self._webhook_url}?wait=true",
+            self._client, "POST", f"{self._base_url}?wait=true",
             json={"embeds": [payload.discord_embed]}
         )
         response.raise_for_status()
@@ -184,7 +206,12 @@ class DiscordBackend(NotificationBackend):
             response.raise_for_status()
 
     def _message_url(self, message_id: str) -> str:
-        return f"https://discord.com/api/webhooks/{self._webhook_id}/{self._webhook_token}/messages/{message_id}"
+        return f"{self._base_url}/messages/{message_id}"
+
+    @property
+    def _base_url(self) -> str:
+        # Always the versioned API, whatever form the configured URL has.
+        return f"https://discord.com/api/v10/webhooks/{self._webhook_id}/{self._webhook_token}"
 
 
 class SlackBackend(NotificationBackend):

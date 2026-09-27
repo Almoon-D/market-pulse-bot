@@ -71,16 +71,11 @@ jobs:
         run: python -m pip install .
 
       - name: Restore message state
-        id: restore
         uses: actions/cache/restore@v6
         with:
           path: data/state.json
           key: mpb-state-${{ github.run_id }}
           restore-keys: mpb-state-
-
-      - name: Import state from the retired bot-state branch (one-time migration)
-        if: steps.restore.outputs.cache-matched-key == ''
-        run: git fetch --depth=1 origin bot-state && git show FETCH_HEAD:state.json > data/state.json || true
 
       - name: Publish once
         continue-on-error: true
