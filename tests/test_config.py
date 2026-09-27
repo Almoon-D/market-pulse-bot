@@ -95,9 +95,8 @@ def test_roster_order_and_display_names() -> None:
         "Euronext Amsterdam", "Euronext Milán", "SIX Swiss Ex.",
     ]
     assert by_region["Asia"] == [
-        "Tokyo Stock Exchange", "Hong Kong Exchange", "Shanghai Stock Exchange", "Shenzhen Stock Exchange",
-        "BSE India", "National Stock Exchange of India", "Korea Exchange", "Taiwan Stock Exchange",
-        "Singapore Exchange",
+        "Tokyo Stock Ex.", "Hong Kong Ex.", "Shanghai Stock Ex.", "Shenzhen Stock Ex.",
+        "BSE India", "NSE India", "Korea Ex.", "Taiwan Stock Ex.", "Singapore Ex.",
     ]
     assert by_region["Oceania"] == [
         "Australian Securities Ex.", "Cboe Australia", "New Zealand", "South Pacific Stock Ex.",

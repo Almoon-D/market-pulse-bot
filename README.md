@@ -6,9 +6,9 @@ Market Pulse Bot watches 26 exchanges across the Americas, Europe, Asia, and Oce
 
 Built for traders who need to know when a market opens without doing timezone math, for desks that want one shared source of truth instead of eleven browser tabs, and for anyone who has ever missed a closing auction because they were watching the wrong clock.
 
-> ⚫️🔜🟣 🇺🇸 NYSE (**USD**) — Pre-market in 8 minutes, at 10:00 (04:00 ET) (03:52 ET)<br>
-> 🟢 🇪🇸 Bolsa de Madrid (**EUR**) — Regular session (14:32 CET/CEST)<br>
-> 🔷🔜🟢 🇯🇵 Tokyo Stock Exchange (**JPY**) — Reopening underway — ≥5 min, possible extension (13:05 JST)
+> ⚫️🔜🟣 🇺🇸 NYSE (**USD**) — Pre-market in 8 minutes, at 10:00<br>
+> 🟢 🇪🇸 Bolsa de Madrid (**EUR**) — Regular session → 🔵 17:30<br>
+> ⚫️ 🇯🇵 Tokyo Stock Ex. (**JPY**) — Closed → 🔵 Wed 01:00
 
 Available in English, Spanish, German, and French. Free, open-source, self-hosted — your data never leaves your own server.
 
@@ -32,6 +32,7 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 | 🚨 | Exceptional closure | Circuit breaker, disaster, or regulator order — never a single-stock event. |
 | 🔷 | Post-halt reopening | Reopening auction after a halt — duration can vary. |
 | 🔜 | *(between two badges)* | A scheduled transition is coming up soon. |
+| → | Next change | The next phase's badge and when it starts, in your own time zone (`MPB_DISPLAY_TIMEZONE`); the weekday is added when it isn't today. |
 
 ---
 
@@ -66,15 +67,15 @@ Every exchange, in every language, uses exactly these badges — nothing more, n
 
 | Exchange | Market | Structure tracked | Incident coverage |
 |---|---|---|---|
-| 🇯🇵 Tokyo Stock Exchange (`XTKS`) | Asia's largest exchange by market cap; native midday lunch break. | Opening call, closing call, lunch break | Manual |
-| 🇭🇰 Hong Kong Exchange (`XHKG`) | Asia's key gateway market, native midday lunch break. | Pre-open session, closing auction, lunch break | Manual |
-| 🇨🇳 Shanghai Stock Exchange (`XSHG`) | Mainland China's larger exchange by market cap. | Opening call, closing call, lunch break | Manual |
-| 🇨🇳 Shenzhen Stock Exchange (`XSHE`) | Mainland China's tech- and growth-heavy exchange. | Opening call, closing call, lunch break | Manual |
+| 🇯🇵 Tokyo Stock Ex. (`XTKS`) | Asia's largest exchange by market cap; native midday lunch break. | Opening call, closing call, lunch break | Manual |
+| 🇭🇰 Hong Kong Ex. (`XHKG`) | Asia's key gateway market, native midday lunch break. | Pre-open session, closing auction, lunch break | Manual |
+| 🇨🇳 Shanghai Stock Ex. (`XSHG`) | Mainland China's larger exchange by market cap. | Opening call, closing call, lunch break | Manual |
+| 🇨🇳 Shenzhen Stock Ex. (`XSHE`) | Mainland China's tech- and growth-heavy exchange. | Opening call, closing call, lunch break | Manual |
 | 🇮🇳 BSE India (`XBOM`) | Asia's oldest stock exchange, founded 1875. | Pre-open session, post-close settlement window | Manual |
-| 🇮🇳 National Stock Exchange of India (`XNSE`) | India's largest exchange by trading volume. | Pre-open session, post-close settlement window | Manual |
-| 🇰🇷 Korea Exchange (`XKRX`) | South Korea's exchange, home to the KOSPI. | Pre-market call, closing call | Manual |
-| 🇹🇼 Taiwan Stock Exchange (`XTAI`) | Taiwan's primary market. | Closing call only — no reliable pre-market data found, left unmodeled | Manual |
-| 🇸🇬 Singapore Exchange (`XSES`) | Southeast Asia's key financial hub. | Opening routine, closing routine, Trade-at-Close† | Manual |
+| 🇮🇳 NSE India (`XNSE`) | India's largest exchange by trading volume. | Pre-open session, post-close settlement window | Manual |
+| 🇰🇷 Korea Ex. (`XKRX`) | South Korea's exchange, home to the KOSPI. | Pre-market call, closing call | Manual |
+| 🇹🇼 Taiwan Stock Ex. (`XTAI`) | Taiwan's primary market. | Closing call only — no reliable pre-market data found, left unmodeled | Manual |
+| 🇸🇬 Singapore Ex. (`XSES`) | Southeast Asia's key financial hub. | Opening routine, closing routine, Trade-at-Close† | Manual |
 
 † SGX has a real, official midday lunch break that this release does not yet detect — see [Known limitations](#known-limitations).
 

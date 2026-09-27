@@ -59,6 +59,7 @@ ALERT_PHASES = INCIDENT_PHASES | {Phase.POST_HALT_REOPENING}
 
 EARLY_CLOSE_EMOJI = "🌗"
 TRANSITION_EMOJI = "🔜"
+NEXT_CHANGE_ARROW = "→"
 
 TRANSITION_KEYS = {
     TransitionKind.TO_PRE_MARKET: "transition.to_pre_market",
@@ -92,6 +93,7 @@ LEGEND_ROWS: tuple[tuple[LegendSection, str, str, str], ...] = (
     ("incident", PHASE_EMOJI[Phase.POST_HALT_REOPENING], "phase.post_halt_reopening", "legend.post_halt_reopening_desc"),
     ("annotation", EARLY_CLOSE_EMOJI, "legend.early_close_label", "legend.early_close_explainer"),
     ("annotation", TRANSITION_EMOJI, "legend.transition_label", "legend.arrow_explainer"),
+    ("annotation", NEXT_CHANGE_ARROW, "legend.next_change_label", "legend.next_change_explainer"),
 )
 
 LEGEND_SECTION_KEYS: dict[LegendSection, str] = {
@@ -124,6 +126,19 @@ def _date(value: dt.date, i18n: I18n) -> str:
     return f"{i18n.t(f'weekday.{_WEEKDAYS[value.weekday()]}')}, {value.isoformat()}"
 
 
+def _when(target: dt.datetime, now: dt.datetime, display_tz: dt.tzinfo, i18n: I18n) -> str:
+    """When `target` happens, in the reader's time zone: "17:30" today,
+    "mar 01:00" within the week, "jue 08/10 03:30" further out."""
+    local = target.astimezone(display_tz)
+    days = (local.date() - now.astimezone(display_tz).date()).days
+    if days <= 0:
+        return _time(local)
+    weekday = i18n.t(f"weekday.{_WEEKDAYS[local.weekday()]}")
+    if days < 7:
+        return f"{weekday} {_time(local)}"
+    return f"{weekday} {local:%d/%m} {_time(local)}"
+
+
 def _phase_label_key(state: PhaseState) -> str:
     if state.current_phase == Phase.AUCTION:
         return "phase.opening_auction" if state.phase_variant == "opening_auction" else "phase.closing_auction"
@@ -148,21 +163,18 @@ def render_exchange_line(
             phrase = i18n.t(key)
         else:
             assert state.transition_time is not None and state.minutes_until is not None
-            display_time = state.transition_time.astimezone(display_tz)
             phrase = i18n.t(
                 key,
                 minutes=state.minutes_until,
-                time=_time(display_time),
-                native_time=_time(state.transition_time),
-                tz_label=exchange.tz_label,
+                time=_time(state.transition_time.astimezone(display_tz)),
             )
     else:
         symbol = current
         phrase = i18n.t(_phase_label_key(state))
-    return (
-        f"{early}{symbol} {exchange.country_flag} {exchange.name} ({_bold(exchange.currency)})"
-        f" — {phrase} ({_time(state.native_now)} {exchange.tz_label})"
-    )
+        if state.next_phase is not None and state.transition_time is not None:
+            when = _when(state.transition_time, state.native_now, display_tz, i18n)
+            phrase += f" {NEXT_CHANGE_ARROW} {PHASE_EMOJI[state.next_phase]} {when}"
+    return f"{early}{symbol} {exchange.country_flag} {exchange.name} ({_bold(exchange.currency)}) — {phrase}"
 
 
 def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -> str:
@@ -181,8 +193,6 @@ def render_event_line(event: UpcomingEvent, display_tz: dt.tzinfo, i18n: I18n) -
         name=event.exchange_name,
         date=_date(event.date, i18n),
         time=_time(display_time),
-        native_time=_time(event.early_close_time),
-        tz_label=event.tz_label,
     )
 
 
