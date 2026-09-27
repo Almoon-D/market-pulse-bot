@@ -17,8 +17,8 @@ from .config import ExchangeConfig, Settings, load_exchanges, scaffold_config, v
 from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_check_once
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
-from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, publish_or_update
-from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads, build_legend_payload
+from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, sync_messages
+from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
 
 logger = logging.getLogger("market_pulse_bot")
 
@@ -33,6 +33,7 @@ async def render_tick(
     backend: NotificationBackend,
     state_store: StateStore,
     state: StateFile,
+    last_sent: dict[SlotName, MessagePayload],
     loop_mode: bool,
 ) -> tuple[StateFile, int]:
     now_utc = dt.datetime.now(dt.UTC)
@@ -51,20 +52,7 @@ async def render_tick(
     except PayloadTooLargeError:
         logger.exception("payload construction failed; no messages sent")
         return state, 1
-
-    failures = 0
-    slots: tuple[tuple[SlotName, MessagePayload], ...] = (
-        ("events_message_ref", payloads[0]),
-        ("dashboard_americas_eu_ref", payloads[1]),
-        ("dashboard_asia_oceania_ref", payloads[2]),
-    )
-    for slot, payload in slots:
-        try:
-            state = await publish_or_update(backend, state_store, state, slot, payload)
-        except Exception:
-            failures += 1
-            logger.exception("notification update failed for %s", slot)
-    return state, failures
+    return await sync_messages(backend, state_store, state, payloads, last_sent)
 
 
 async def async_run(args: argparse.Namespace) -> int:
@@ -77,6 +65,7 @@ async def async_run(args: argparse.Namespace) -> int:
     incidents = IncidentStore()
     state_store = StateStore(settings.state_path)
     state = state_store.load(settings.notification_backend)
+    last_sent: dict[SlotName, MessagePayload] = {}
     stop_event = asyncio.Event()
 
     running_loop = asyncio.get_running_loop()
@@ -92,7 +81,7 @@ async def async_run(args: argparse.Namespace) -> int:
             await run_incident_check_once(exchanges, settings.manual_incidents_path, incidents, client)
             _, failures = await render_tick(
                 exchanges, schedules, incidents, i18n, display_tz, settings,
-                backend, state_store, state, loop_mode=False
+                backend, state_store, state, last_sent, loop_mode=False
             )
             return 1 if failures else 0
 
@@ -102,14 +91,22 @@ async def async_run(args: argparse.Namespace) -> int:
                 args.incident_interval, stop_event, client
             )
         )
+        deadline = running_loop.time() + args.max_runtime if args.max_runtime else None
         try:
             while not stop_event.is_set():
                 state, _ = await render_tick(
                     exchanges, schedules, incidents, i18n, display_tz, settings,
-                    backend, state_store, state, loop_mode=True
+                    backend, state_store, state, last_sent, loop_mode=True
                 )
+                timeout = float(args.interval)
+                if deadline is not None:
+                    remaining = deadline - running_loop.time()
+                    if remaining <= 0:
+                        logger.info("--max-runtime reached; stopping")
+                        break
+                    timeout = min(timeout, remaining)
                 try:
-                    await asyncio.wait_for(stop_event.wait(), timeout=args.interval)
+                    await asyncio.wait_for(stop_event.wait(), timeout=timeout)
                 except TimeoutError:
                     pass
         finally:
@@ -118,36 +115,16 @@ async def async_run(args: argparse.Namespace) -> int:
     return 0
 
 
-async def send_legend(settings: Settings) -> int:
-    """Publish the static phase-badge legend once, and try to pin it.
-
-    Deliberately separate from render_tick/async_run: this is an
-    explicit, operator-triggered, one-off action (Zero Spam rule) with
-    no persistent state-file slot of its own -- state.json's schema is
-    the three dashboard/events slots (Section 5) and stays that way.
-    Re-running this command posts (and tries to pin) a fresh copy; it
-    does not track or update a previous legend message.
-    """
-    i18n = I18n(settings.locales_dir, settings.language)
-    async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0)) as client:
-        backend = build_backend(settings, client)
-        payload = build_legend_payload(i18n, settings.notification_backend)
-        try:
-            reference = await backend.publish(payload)
-        except Exception:
-            logger.exception("failed to publish the legend message")
-            return 1
-        pinned = await backend.pin(reference)
-        logger.info("legend published%s", " and pinned" if pinned else " (not pinned)")
-    return 0
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="market-pulse-bot")
-    parser.add_argument("command", nargs="?", choices=("run", "init-config", "send-legend"), default="run")
+    parser.add_argument("command", nargs="?", choices=("run", "init-config"), default="run")
     parser.add_argument("--loop", action="store_true")
     parser.add_argument("--interval", type=int, default=30)
     parser.add_argument("--incident-interval", type=int, default=90)
+    parser.add_argument(
+        "--max-runtime", type=int, default=0,
+        help="with --loop: stop cleanly after this many seconds (0 = run until stopped)",
+    )
     return parser
 
 
@@ -159,8 +136,10 @@ def main() -> int:
         parser.error("--incident-interval must be >= 60")
     if args.interval < 1:
         parser.error("--interval must be >= 1")
-    if args.command == "send-legend" and args.loop:
-        parser.error("send-legend is a one-shot command and cannot be combined with --loop")
+    if args.max_runtime < 0:
+        parser.error("--max-runtime must be >= 0")
+    if args.max_runtime and not args.loop:
+        parser.error("--max-runtime requires --loop")
     if args.command == "init-config":
         path = Path("config/exchanges.yaml")
         if not path.exists():
@@ -168,11 +147,6 @@ def main() -> int:
         changed = scaffold_config(path)
         print("config/exchanges.yaml normalized" if changed else "config/exchanges.yaml already normalized")
         return 0
-    if args.command == "send-legend":
-        try:
-            return asyncio.run(send_legend(Settings()))
-        except KeyboardInterrupt:
-            return 0
     try:
         return asyncio.run(async_run(args))
     except KeyboardInterrupt:

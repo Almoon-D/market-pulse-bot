@@ -1,4 +1,4 @@
-"""Notification backends and durable three-slot message state."""
+"""Notification backends and durable four-slot message state."""
 
 from __future__ import annotations
 
@@ -8,19 +8,26 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
 from urllib.parse import urlsplit
 
 import httpx
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import AliasChoices, BaseModel, Field, ValidationError
 
 from .config import Backend, Settings
 from .text_formatter import MessagePayload
 
 logger = logging.getLogger(__name__)
 
-SlotName = Literal["events_message_ref", "dashboard_americas_eu_ref", "dashboard_asia_oceania_ref"]
+SlotName = Literal[
+    "legend_message_ref", "alerts_message_ref", "dashboard_americas_eu_ref", "dashboard_asia_oceania_ref"
+]
+# Channel order, top to bottom.
+SLOT_ORDER: tuple[SlotName, ...] = (
+    "legend_message_ref", "alerts_message_ref", "dashboard_americas_eu_ref", "dashboard_asia_oceania_ref"
+)
 
 
 class DiscordRef(BaseModel):
@@ -45,7 +52,11 @@ StoredReference = Annotated[DiscordRef | SlackRef | TelegramRef, Field(discrimin
 
 class StateFile(BaseModel):
     backend: Backend
-    events_message_ref: StoredReference | None = None
+    legend_message_ref: StoredReference | None = None
+    # Older state files called this slot events_message_ref.
+    alerts_message_ref: StoredReference | None = Field(
+        default=None, validation_alias=AliasChoices("alerts_message_ref", "events_message_ref")
+    )
     dashboard_americas_eu_ref: StoredReference | None = None
     dashboard_asia_oceania_ref: StoredReference | None = None
 
@@ -127,16 +138,9 @@ class NotificationBackend(ABC):
     @abstractmethod
     async def update(self, reference: StoredReference, payload: MessagePayload) -> StoredReference: ...
 
-    async def pin(self, reference: StoredReference) -> bool:
-        """Pin a previously-published message, if this backend supports it.
-
-        Returns True on success, False on any graceful non-fatal failure
-        (missing permission/scope, or a backend that structurally cannot
-        pin at all). Never raises for a permission/capability problem --
-        pinning is a nice-to-have, not something that should take down
-        an otherwise-successful publish.
-        """
-        return False
+    @abstractmethod
+    async def delete(self, reference: StoredReference) -> None:
+        """Delete a published message. A message that is already gone counts as deleted."""
 
 
 class DiscordBackend(NotificationBackend):
@@ -165,25 +169,22 @@ class DiscordBackend(NotificationBackend):
             raise TypeError(f"Discord backend cannot update {type(reference).__name__} reference")
         if payload.discord_embed is None:
             raise ValueError("Discord payload missing embed")
-        url = f"https://discord.com/api/webhooks/{self._webhook_id}/{self._webhook_token}/messages/{reference.message_id}"
+        url = self._message_url(reference.message_id)
         response = await request_with_backoff(self._client, "PATCH", url, json={"embeds": [payload.discord_embed]})
         if response.status_code == 404:
             raise MessageNotFoundError(f"Discord message {reference.message_id} not found")
         response.raise_for_status()
         return reference
 
-    async def pin(self, reference: StoredReference) -> bool:
-        # Structural, not a permission edge case: pinning requires the
-        # PUT /channels/{id}/pins/{message.id} REST endpoint, which needs a
-        # real bot token with Manage Messages in that channel. A webhook
-        # token -- all this backend has, by deliberate design (Section 5)
-        # -- cannot authenticate to that endpoint at all. There is no
-        # request this backend could make that would ever succeed here.
-        logger.info(
-            "Discord webhook backend cannot pin messages (requires a bot token with "
-            "Manage Messages, not a webhook token) -- skipping, this is expected"
-        )
-        return False
+    async def delete(self, reference: StoredReference) -> None:
+        if not isinstance(reference, DiscordRef):
+            raise TypeError(f"Discord backend cannot delete {type(reference).__name__} reference")
+        response = await request_with_backoff(self._client, "DELETE", self._message_url(reference.message_id))
+        if response.status_code != 404:
+            response.raise_for_status()
+
+    def _message_url(self, message_id: str) -> str:
+        return f"https://discord.com/api/webhooks/{self._webhook_id}/{self._webhook_token}/messages/{message_id}"
 
 
 class SlackBackend(NotificationBackend):
@@ -227,17 +228,14 @@ class SlackBackend(NotificationBackend):
             raise
         return reference
 
-    async def pin(self, reference: StoredReference) -> bool:
+    async def delete(self, reference: StoredReference) -> None:
         if not isinstance(reference, SlackRef):
-            return False
+            raise TypeError(f"Slack backend cannot delete {type(reference).__name__} reference")
         try:
-            await self._call("pins.add", {"channel": reference.channel_id, "timestamp": reference.ts})
-            return True
-        except Exception as exc:  # noqa: BLE001 - pinning is best-effort, never fatal
-            # Common non-fatal cases: missing_scope (bot token lacks
-            # pins:write), no_pin_permission (channel setting), already_pinned.
-            logger.warning("Slack pins.add failed, continuing without pinning: %s", exc)
-            return False
+            await self._call("chat.delete", {"channel": reference.channel_id, "ts": reference.ts})
+        except RuntimeError as exc:
+            if "message_not_found" not in str(exc):
+                raise
 
 
 class TelegramBackend(NotificationBackend):
@@ -256,13 +254,14 @@ class TelegramBackend(NotificationBackend):
             response.raise_for_status()
             raise RuntimeError(f"Telegram {method} returned invalid JSON") from None
         if not data.get("ok"):
+            # Telegram reports errors as HTTP 4xx with a JSON description;
+            # keep the description so callers can recognise specific errors.
             error = str(data.get("description", "unknown_error"))
             if error.lower().startswith("bad request: message is not modified"):
                 return None
-            response.raise_for_status()
-            raise RuntimeError(f"Telegram {method} failed: {error}")
+            raise RuntimeError(f"Telegram {method} failed ({response.status_code}): {error}")
         if not expect_dict_result:
-            # Some methods (pinChatMessage, unpinChatMessage, ...) return a
+            # Some methods (deleteMessage, pinChatMessage, ...) return a
             # plain boolean `result` on success per the Telegram Bot API,
             # not an object -- there's nothing further to extract here.
             return None
@@ -272,7 +271,9 @@ class TelegramBackend(NotificationBackend):
         return cast(dict[str, object], result)
 
     async def publish(self, payload: MessagePayload) -> TelegramRef:
-        result = await self._call("sendMessage", {"chat_id": self._chat_id, "text": payload.plain_text})
+        result = await self._call(
+            "sendMessage", {"chat_id": self._chat_id, "text": payload.plain_text, "parse_mode": "HTML"}
+        )
         assert result is not None
         message_id = result.get("message_id")
         if not isinstance(message_id, (int, str)):
@@ -285,7 +286,12 @@ class TelegramBackend(NotificationBackend):
         try:
             await self._call(
                 "editMessageText",
-                {"chat_id": reference.chat_id, "message_id": reference.message_id, "text": payload.plain_text},
+                {
+                    "chat_id": reference.chat_id,
+                    "message_id": reference.message_id,
+                    "text": payload.plain_text,
+                    "parse_mode": "HTML",
+                },
             )
         except RuntimeError as exc:
             if "message to edit not found" in str(exc).lower():
@@ -293,22 +299,25 @@ class TelegramBackend(NotificationBackend):
             raise
         return reference
 
-    async def pin(self, reference: StoredReference) -> bool:
+    async def delete(self, reference: StoredReference) -> None:
         if not isinstance(reference, TelegramRef):
-            return False
+            raise TypeError(f"Telegram backend cannot delete {type(reference).__name__} reference")
         try:
             await self._call(
-                "pinChatMessage",
-                {"chat_id": reference.chat_id, "message_id": reference.message_id, "disable_notification": True},
+                "deleteMessage",
+                {"chat_id": reference.chat_id, "message_id": reference.message_id},
                 expect_dict_result=False,
             )
-            return True
-        except Exception as exc:  # noqa: BLE001 - pinning is best-effort, never fatal
-            # Common non-fatal case: the bot isn't an admin in this chat
-            # (Telegram requires "Pin Messages" admin rights in groups/
-            # channels; in a private 1:1 chat only the other user can pin).
-            logger.warning("Telegram pinChatMessage failed, continuing without pinning: %s", exc)
-            return False
+        except RuntimeError as exc:
+            error = str(exc).lower()
+            if "message to delete not found" in error:
+                return
+            if "message can't be deleted" in error:
+                # Telegram refuses to delete messages older than 48 hours;
+                # nothing more can be done about this one.
+                logger.warning("Telegram could not delete message %s: %s", reference.message_id, exc)
+                return
+            raise
 
 
 def build_backend(settings: Settings, client: httpx.AsyncClient) -> NotificationBackend:
@@ -322,27 +331,69 @@ def build_backend(settings: Settings, client: httpx.AsyncClient) -> Notification
     return TelegramBackend(settings.telegram_bot_token, settings.telegram_chat_id, client)
 
 
-async def publish_or_update(
+async def sync_messages(
     backend: NotificationBackend,
     store: StateStore,
     state: StateFile,
-    slot: SlotName,
-    payload: MessagePayload,
-) -> StateFile:
-    existing = getattr(state, slot)
-    if existing is None or existing.backend != state.backend:
-        if existing is not None:
-            logger.warning(
-                "%s has reference backend=%s while configured backend=%s; recreating only this slot",
-                slot, existing.backend, state.backend,
-            )
-        reference = await backend.publish(payload)
-    else:
+    payloads: Sequence[MessagePayload],
+    last_sent: dict[SlotName, MessagePayload],
+) -> tuple[StateFile, int]:
+    """Keep the four messages published, in SLOT_ORDER, and up to date.
+
+    Existing messages are edited in place; an edit is skipped when the
+    payload equals what this process last sent. When a message is missing,
+    every message after it is deleted and re-posted along with it, so the
+    channel always reads legend, alerts, then the two dashboards. A failed
+    delete or publish stops the pass; the next call picks it up again.
+    Returns the state and the number of failed operations.
+    """
+    failures = 0
+    first_missing: int | None = None
+    for index, (slot, payload) in enumerate(zip(SLOT_ORDER, payloads, strict=True)):
+        reference = getattr(state, slot)
+        if reference is None or reference.backend != state.backend:
+            if reference is not None:
+                logger.warning(
+                    "%s has reference backend=%s while configured backend=%s; re-posting it",
+                    slot, reference.backend, state.backend,
+                )
+            first_missing = index
+            break
+        if last_sent.get(slot) == payload:
+            continue
         try:
-            reference = await backend.update(existing, payload)
+            await backend.update(reference, payload)
         except MessageNotFoundError:
-            logger.warning("%s missing; recreating only this slot", slot)
+            logger.warning("%s missing; re-posting it and every message after it", slot)
+            first_missing = index
+            break
+        except Exception:
+            failures += 1
+            logger.exception("notification update failed for %s", slot)
+            continue
+        last_sent[slot] = payload
+    if first_missing is None:
+        return state, failures
+
+    for slot in SLOT_ORDER[first_missing + 1:]:
+        reference = getattr(state, slot)
+        if reference is not None and reference.backend == state.backend:
+            try:
+                await backend.delete(reference)
+            except Exception:
+                logger.exception("could not delete %s; retrying on the next update", slot)
+                return state, failures + 1
+        setattr(state, slot, None)
+        last_sent.pop(slot, None)
+        store.save(state)
+
+    for slot, payload in zip(SLOT_ORDER[first_missing:], payloads[first_missing:], strict=True):
+        try:
             reference = await backend.publish(payload)
-    setattr(state, slot, reference)
-    store.save(state)
-    return state
+        except Exception:
+            logger.exception("could not publish %s; retrying on the next update", slot)
+            return state, failures + 1
+        setattr(state, slot, reference)
+        last_sent[slot] = payload
+        store.save(state)
+    return state, failures

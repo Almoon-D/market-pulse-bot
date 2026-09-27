@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import datetime as dt
+import html
 from dataclasses import dataclass
 from typing import Any, Literal
 
 from .config import Backend, ExchangeConfig
 from .i18n import I18n
-from .market_engine import Phase, PhaseState, TransitionKind, UpcomingEvent
+from .market_engine import INCIDENT_PHASES, Phase, PhaseState, TransitionKind, UpcomingEvent
 
 DISCORD_TITLE_LIMIT = 256
 DISCORD_DESCRIPTION_LIMIT = 4096
@@ -20,7 +21,12 @@ SLACK_BLOCK_TEXT_LIMIT = 3000
 SLACK_FALLBACK_TEXT_LIMIT = 4000
 TELEGRAM_MESSAGE_LIMIT = 4096
 
-MessageKind = Literal["events", "dashboard_amer_eu", "dashboard_asia_oc", "legend"]
+MessageKind = Literal["legend", "alerts", "dashboard_amer_eu", "dashboard_asia_oc"]
+
+# Text is built once with these neutral bold markers; _markup() turns them
+# into each backend's own bold syntax.
+BOLD_OPEN = "\x02"
+BOLD_CLOSE = "\x03"
 
 
 class PayloadTooLargeError(RuntimeError):
@@ -48,6 +54,9 @@ PHASE_EMOJI = {
     Phase.POST_HALT_REOPENING: "🔷",
 }
 
+# Exchange states that also get listed in the alerts message.
+ALERT_PHASES = INCIDENT_PHASES | {Phase.POST_HALT_REOPENING}
+
 EARLY_CLOSE_EMOJI = "🌗"
 TRANSITION_EMOJI = "🔜"
 
@@ -66,6 +75,7 @@ TRANSITION_KEYS = {
 }
 
 LegendSection = Literal["session", "incident", "annotation"]
+LEGEND_SECTIONS: tuple[LegendSection, ...] = ("session", "incident", "annotation")
 
 # One row per visible badge. Variant-specific dashboard states share their
 # badge in the legend, while the dashboard itself keeps their exact labels.
@@ -91,6 +101,19 @@ LEGEND_SECTION_KEYS: dict[LegendSection, str] = {
 }
 
 _WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+def _bold(text: str) -> str:
+    return f"{BOLD_OPEN}{text}{BOLD_CLOSE}"
+
+
+def _markup(text: str, backend: Backend) -> str:
+    if backend == "discord":
+        return text.replace(BOLD_OPEN, "**").replace(BOLD_CLOSE, "**")
+    if backend == "slack":
+        return text.replace(BOLD_OPEN, "*").replace(BOLD_CLOSE, "*")
+    # Telegram messages are sent with parse_mode=HTML.
+    return html.escape(text, quote=False).replace(BOLD_OPEN, "<b>").replace(BOLD_CLOSE, "</b>")
 
 
 def _time(value: dt.datetime) -> str:
@@ -137,7 +160,7 @@ def render_exchange_line(
         symbol = current
         phrase = i18n.t(_phase_label_key(state))
     return (
-        f"{early}{symbol} {exchange.country_flag} {exchange.name} ({exchange.currency})"
+        f"{early}{symbol} {exchange.country_flag} {exchange.name} ({_bold(exchange.currency)})"
         f" — {phrase} ({_time(state.native_now)} {exchange.tz_label})"
     )
 
@@ -168,7 +191,7 @@ def render_legend_line(badge: str, label_key: str, description_key: str, i18n: I
 
 
 def legend_lines_by_section(i18n: I18n) -> dict[LegendSection, list[str]]:
-    sections: dict[LegendSection, list[str]] = {"session": [], "incident": [], "annotation": []}
+    sections: dict[LegendSection, list[str]] = {section: [] for section in LEGEND_SECTIONS}
     for section, badge, label_key, description_key in LEGEND_ROWS:
         sections[section].append(render_legend_line(badge, label_key, description_key, i18n))
     return sections
@@ -264,64 +287,73 @@ def _validate_text_limits(text: str, backend: Backend, kind: str) -> None:
         raise PayloadTooLargeError(f"{kind} exceeds conservative Slack text budget")
 
 
+def _discord_fields(label: str, lines: list[str]) -> list[dict[str, object]]:
+    return [
+        {"name": name, "value": value, "inline": False}
+        for name, value in _split_field(label, [_markup(line, "discord") for line in lines])
+    ]
+
+
+def _package(
+    kind: MessageKind,
+    text: str,
+    backend: Backend,
+    embed: dict[str, Any] | None,
+) -> MessagePayload:
+    plain = _markup(text, backend)
+    _validate_text_limits(plain, backend, kind)
+    if embed is not None:
+        _validate_discord_embed(embed)
+    return MessagePayload(kind, plain, _slack_blocks(plain) if backend == "slack" else [], embed)
+
+
 def build_legend_payload(i18n: I18n, backend: Backend) -> MessagePayload:
-    """A static, on-request-only reference message explaining every phase
-    badge. Never sent as part of the regular render loop -- see
-    app.py's send_legend(), which is the only caller.
-    """
+    """Message 1: what every badge means. Its text never changes, so
+    sync_messages() only edits it again when the wording does."""
     title = i18n.t("legend.title")
     intro = i18n.t("legend.intro")
-    note = i18n.t("legend.footer_note")
-    sections = legend_lines_by_section(i18n)
-    blocks = [
-        f"— {i18n.t(LEGEND_SECTION_KEYS[section])} —\n" + "\n".join(sections[section])
-        for section in ("session", "incident", "annotation")
-        if sections[section]
-    ]
-    plain = f"{title}\n\n{intro}\n\n" + "\n\n".join(blocks) + f"\n\n{note}"
-    _validate_text_limits(plain, backend, "legend")
-    embed = None
+    lines = legend_lines_by_section(i18n)
+    sections = [section for section in LEGEND_SECTIONS if lines[section]]
+    text = f"{title}\n\n{intro}\n\n" + "\n\n".join(
+        f"— {i18n.t(LEGEND_SECTION_KEYS[section])} —\n" + "\n".join(lines[section])
+        for section in sections
+    )
+    embed: dict[str, Any] | None = None
     if backend == "discord":
-        fields: list[dict[str, object]] = []
-        for section in ("session", "incident", "annotation"):
-            if not sections[section]:
-                continue
-            fields.extend(
-                {"name": name, "value": value, "inline": False}
-                for name, value in _split_field(i18n.t(LEGEND_SECTION_KEYS[section]), sections[section])
-            )
-        embed = {"title": title, "description": intro, "fields": fields, "footer": {"text": note}}
-        _validate_discord_embed(embed)
-    return MessagePayload("legend", plain, _slack_blocks(plain) if backend == "slack" else [], embed)
+        fields = [
+            field
+            for section in sections
+            for field in _discord_fields(i18n.t(LEGEND_SECTION_KEYS[section]), lines[section])
+        ]
+        embed = {"title": title, "description": intro, "fields": fields}
+    return _package("legend", text, backend, embed)
 
 
-def build_events_payload(
+def build_alerts_payload(
+    incident_lines: list[str],
     events: list[UpcomingEvent],
     now_utc: dt.datetime,
     display_tz: dt.tzinfo,
     i18n: I18n,
     backend: Backend,
 ) -> MessagePayload:
-    title = i18n.t("header.events_title")
-    lines = [render_event_line(event, display_tz, i18n) for event in events]
-    body = "\n".join(lines) if lines else i18n.t("events.no_events")
+    """Message 2: exchange-wide halts right now, then holidays and half days ahead."""
+    title = i18n.t("header.alerts_title")
     footer = _footer(now_utc, display_tz, i18n)
-    plain = f"{title}\n\n{body}\n\n{footer}"
-    _validate_text_limits(plain, backend, "events")
-    embed = None
+    incidents_label = i18n.t("alerts.incidents_section")
+    events_label = i18n.t("alerts.events_section")
+    incidents = incident_lines or [i18n.t("alerts.no_incidents")]
+    upcoming = [render_event_line(event, display_tz, i18n) for event in events] or [i18n.t("events.no_events")]
+    text = (
+        f"{title}\n\n— {incidents_label} —\n" + "\n".join(incidents)
+        + f"\n\n— {events_label} —\n" + "\n".join(upcoming)
+        + f"\n\n{footer}"
+    )
+    embed: dict[str, Any] | None = None
     if backend == "discord":
-        fields: list[dict[str, object]] = []
-        for day in sorted({event.date for event in events}):
-            day_lines = [render_event_line(event, display_tz, i18n) for event in events if event.date == day]
-            fields.extend(
-                {"name": name, "value": value, "inline": False}
-                for name, value in _split_field(_date(day, i18n), day_lines)
-            )
-        if not fields:
-            fields = [{"name": i18n.t("events.no_events"), "value": "—", "inline": False}]
+        fields = _discord_fields(incidents_label, incidents) + _discord_fields(events_label, upcoming)
         embed = {"title": title, "fields": fields, "footer": {"text": footer}}
-        _validate_discord_embed(embed)
-    return MessagePayload("events", plain, _slack_blocks(plain) if backend == "slack" else [], embed)
+    return _package("alerts", text, backend, embed)
 
 
 def build_dashboard_payload(
@@ -341,19 +373,16 @@ def build_dashboard_payload(
         f"— {labels[region]} —\n" + ("\n".join(lines_by_region.get(region, [])) or "—")
         for region in regions
     ]
-    plain = f"{title}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"
-    _validate_text_limits(plain, backend, kind)
-    embed = None
+    text = f"{title}\n\n" + "\n\n".join(sections) + f"\n\n{footer}"
+    embed: dict[str, Any] | None = None
     if backend == "discord":
-        fields: list[dict[str, object]] = []
-        for region in regions:
-            fields.extend(
-                {"name": name, "value": value, "inline": False}
-                for name, value in _split_field(labels[region], lines_by_region.get(region, []))
-            )
+        fields = [
+            field
+            for region in regions
+            for field in _discord_fields(labels[region], lines_by_region.get(region, []))
+        ]
         embed = {"title": title, "fields": fields, "footer": {"text": footer}}
-        _validate_discord_embed(embed)
-    return MessagePayload(kind, plain, _slack_blocks(plain) if backend == "slack" else [], embed)
+    return _package(kind, text, backend, embed)
 
 
 def build_all_payloads(
@@ -364,12 +393,19 @@ def build_all_payloads(
     display_tz: dt.tzinfo,
     i18n: I18n,
     backend: Backend,
-) -> tuple[MessagePayload, MessagePayload, MessagePayload]:
+) -> tuple[MessagePayload, MessagePayload, MessagePayload, MessagePayload]:
+    """The four messages in channel order: legend, alerts, then the two dashboards."""
     lines: dict[str, list[str]] = {region: [] for region in ("America", "Europe", "Asia", "Oceania")}
+    incident_lines: list[str] = []
     for exchange in exchanges:
-        lines[exchange.region].append(render_exchange_line(exchange, phase_states[exchange.mic], i18n, display_tz))
+        state = phase_states[exchange.mic]
+        line = render_exchange_line(exchange, state, i18n, display_tz)
+        lines[exchange.region].append(line)
+        if state.current_phase in ALERT_PHASES:
+            incident_lines.append(line)
     return (
-        build_events_payload(upcoming_events, now_utc, display_tz, i18n, backend),
+        build_legend_payload(i18n, backend),
+        build_alerts_payload(incident_lines, upcoming_events, now_utc, display_tz, i18n, backend),
         build_dashboard_payload("dashboard_amer_eu", "header.dashboard_americas_eu_title", ("America", "Europe"), lines, now_utc, display_tz, i18n, backend),
         build_dashboard_payload("dashboard_asia_oc", "header.dashboard_asia_oceania_title", ("Asia", "Oceania"), lines, now_utc, display_tz, i18n, backend),
     )

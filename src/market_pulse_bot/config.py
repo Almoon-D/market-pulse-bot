@@ -82,6 +82,26 @@ class SyntheticCalendarConfig(BaseModel):
         return self
 
 
+class SeasonalCloseConfig(BaseModel):
+    """A regular close that moves while another market observes DST.
+
+    B3, for example, closes at 17:00 instead of 18:00 while New York is on
+    daylight saving time, to keep overlapping with the US session.
+    """
+
+    reference_timezone: str
+    close_time: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+
+    @field_validator("reference_timezone")
+    @classmethod
+    def valid_timezone(cls, value: str) -> str:
+        try:
+            zoneinfo.ZoneInfo(value)
+        except zoneinfo.ZoneInfoNotFoundError as exc:
+            raise ValueError(f"unknown IANA timezone {value!r}") from exc
+        return value
+
+
 class ExchangeConfig(BaseModel):
     name: str
     mic: str = Field(min_length=4, max_length=4)
@@ -94,6 +114,7 @@ class ExchangeConfig(BaseModel):
     phase_windows: list[PhaseWindowConfig] = Field(default_factory=list)
     incident_source: IncidentSourceConfig
     synthetic: SyntheticCalendarConfig | None = None
+    seasonal_close: SeasonalCloseConfig | None = None
 
     @field_validator("mic")
     @classmethod
@@ -120,6 +141,8 @@ class ExchangeConfig(BaseModel):
             raise ValueError(f"{self.mic}: synthetic calendar requires synthetic block")
         if self.calendar_type == "exchange_calendars" and self.synthetic is not None:
             raise ValueError(f"{self.mic}: synthetic block is not valid for exchange_calendars")
+        if self.seasonal_close is not None and self.calendar_type != "exchange_calendars":
+            raise ValueError(f"{self.mic}: seasonal_close is only supported for exchange_calendars")
         phases = [window.phase for window in self.phase_windows]
         if len(phases) != len(set(phases)):
             raise ValueError(f"{self.mic}: phase_windows cannot repeat a phase")

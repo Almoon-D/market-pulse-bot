@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 import exchange_calendars as xc
 
-from .config import ExchangeConfig, SyntheticCalendarConfig
+from .config import ExchangeConfig, SeasonalCloseConfig, SyntheticCalendarConfig
 
 
 class MarketSchedule(ABC):
@@ -47,10 +47,11 @@ class MarketSchedule(ABC):
 
 
 class ExchangeCalendarsSchedule(MarketSchedule):
-    def __init__(self, mic: str, timezone: str) -> None:
+    def __init__(self, mic: str, timezone: str, seasonal_close: SeasonalCloseConfig | None = None) -> None:
         self._calendar = xc.get_calendar(mic)
         self._early_close_dates = {value.date() for value in self._calendar.early_closes}
         self.tz = ZoneInfo(timezone)
+        self._seasonal_close = seasonal_close
 
     def _local(self, value: Any) -> dt.datetime:
         return cast(dt.datetime, value.to_pydatetime().astimezone(self.tz))
@@ -65,7 +66,15 @@ class ExchangeCalendarsSchedule(MarketSchedule):
         return self._local(self._calendar.session_open(session))
 
     def session_close(self, session: dt.date) -> dt.datetime:
-        return self._local(self._calendar.session_close(session))
+        close = self._local(self._calendar.session_close(session))
+        seasonal = self._seasonal_close
+        if seasonal is None or self.is_early_close(session):
+            return close
+        reference = dt.datetime(session.year, session.month, session.day, 12, tzinfo=ZoneInfo(seasonal.reference_timezone))
+        if not reference.dst():
+            return close
+        hour, minute = map(int, seasonal.close_time.split(":"))
+        return dt.datetime(session.year, session.month, session.day, hour, minute, tzinfo=self.tz)
 
     def has_break(self, session: dt.date) -> bool:
         return bool(self._calendar.session_has_break(session))
@@ -151,6 +160,6 @@ class SyntheticSchedule(MarketSchedule):
 
 def build_schedule(exchange: ExchangeConfig) -> MarketSchedule:
     if exchange.calendar_type == "exchange_calendars":
-        return ExchangeCalendarsSchedule(exchange.mic, exchange.timezone)
+        return ExchangeCalendarsSchedule(exchange.mic, exchange.timezone, exchange.seasonal_close)
     assert exchange.synthetic is not None
     return SyntheticSchedule(exchange.synthetic, exchange.timezone)

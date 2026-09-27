@@ -28,7 +28,7 @@ transition:
 annotation:
   early_close_day: "verkürzte Sitzung"
 header:
-  events_title: "📅 Bevorstehende Ereignisse & Feiertage — nächste 5 Handelstage"
+  alerts_title: "⚠️ Marktwarnungen"
   dashboard_americas_eu_title: "🌎 Live-Übersicht — Amerika & Europa"
   dashboard_asia_oceania_title: "🌏 Live-Übersicht — Asien & Ozeanien"
 region:
@@ -40,6 +40,10 @@ events:
   no_events: "Keine offiziellen Feiertage oder verkürzten Handelstage in den nächsten 5 Handelstagen."
   holiday_line: "{flag} {name} — Offizieller Feiertag ({date})"
   early_close_line: "{flag} {name} — Verkürzte Sitzung ({date}), um {time} ({native_time} {tz_label})"
+alerts:
+  incidents_section: "Aktive Aussetzungen & Schließungen"
+  no_incidents: "Derzeit keine börsenweiten Aussetzungen oder Schließungen."
+  events_section: "Feiertage & verkürzte Handelstage — nächste 5 Handelstage"
 weekday:
   mon: "Mo"
   tue: "Di"
@@ -52,7 +56,7 @@ footer:
   generated_at: "Aktualisiert: {time}"
 legend:
   title: "📖 Market Pulse Bot — Phasen-Legende"
-  intro: "Wird nur auf Anfrage gesendet (--send-legend) — nie im Rahmen der regulären Updates."
+  intro: "Was jedes Symbol in den Live-Übersichten bedeutet."
   section_session: "Handelsphasen"
   section_incident: "Störungszustände"
   section_annotation: "Hinweise"
@@ -70,4 +74,3 @@ legend:
   technical_halt_desc: "Technische oder betriebliche Aussetzung der gesamten Börse."
   exceptional_closure_desc: "Circuit Breaker, Katastrophe oder behördliche Anordnung — nie ein Einzelwert-Ereignis."
   post_halt_reopening_desc: "Die Wiedereröffnungsauktion nach einer Aussetzung — die Dauer kann variieren."
-  footer_note: "Diese Nachricht ist statisch und aktualisiert sich nicht von selbst."

@@ -28,7 +28,7 @@ transition:
 annotation:
   early_close_day: "séance raccourcie"
 header:
-  events_title: "📅 Événements et jours fériés — 5 prochains jours ouvrés"
+  alerts_title: "⚠️ Alertes de marché"
   dashboard_americas_eu_title: "🌎 Tableau de bord en direct — Amériques et Europe"
   dashboard_asia_oceania_title: "🌏 Tableau de bord en direct — Asie et Océanie"
 region:
@@ -40,6 +40,10 @@ events:
   no_events: "Aucun jour férié officiel ni séance raccourcie dans les 5 prochains jours ouvrés."
   holiday_line: "{flag} {name} — Jour férié officiel ({date})"
   early_close_line: "{flag} {name} — Séance raccourcie ({date}), à {time} ({native_time} {tz_label})"
+alerts:
+  incidents_section: "Suspensions et fermetures en cours"
+  no_incidents: "Aucune suspension ni fermeture de marché en ce moment."
+  events_section: "Jours fériés et séances réduites — 5 prochains jours ouvrés"
 weekday:
   mon: "lun"
   tue: "mar"
@@ -52,7 +56,7 @@ footer:
   generated_at: "Mis à jour : {time}"
 legend:
   title: "📖 Market Pulse Bot — Légende des phases"
-  intro: "Envoyé uniquement sur demande (--send-legend) — jamais dans le cadre des mises à jour régulières."
+  intro: "Ce que signifie chaque symbole des tableaux de bord en direct."
   section_session: "Phases de séance"
   section_incident: "Incidents"
   section_annotation: "Annotations"
@@ -70,4 +74,3 @@ legend:
   technical_halt_desc: "Interruption technique ou opérationnelle de l'ensemble du marché."
   exceptional_closure_desc: "Coupe-circuit, catastrophe ou décision du régulateur — jamais un événement limité à une seule valeur."
   post_halt_reopening_desc: "L'enchère de réouverture après une suspension — la durée peut varier."
-  footer_note: "Ce message est statique et ne se met pas à jour automatiquement."
