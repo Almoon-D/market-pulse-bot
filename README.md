@@ -215,6 +215,8 @@ The four messages always appear in the same order — legend, alerts, Americas &
 - An hourly scheduled run acts as a watchdog. It restarts the chain if it ever breaks, and exits immediately while a run is already publishing. Plain `*/5` cron schedules aren't used because GitHub often delays them by hours.
 - The Discord message ids (`data/state.json`) are kept in the Actions cache, not committed anywhere, so no extra branch is needed.
 
+If the webhook is deleted or its token rejected, the bot stops with a clear error and a failed run instead of retrying. To rotate it: create the new webhook, update the `MPB_DISCORD_WEBHOOK_URL` secret, and start the workflow again from the Actions tab (or wait for the hourly watchdog). A webhook can only edit or delete its own messages, so remove the previous webhook's messages by hand.
+
 Public repositories get these Actions minutes for free. GitHub pauses scheduled workflows in repositories with no activity for 60 days; if that happens, re-enable the workflow from the Actions tab.
 
 ## License

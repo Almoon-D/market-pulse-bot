@@ -18,7 +18,15 @@ from .config import ExchangeConfig, Settings, load_exchanges, scaffold_config, v
 from .halt_detector import IncidentStore, run_halt_detector_loop, run_incident_check_once
 from .i18n import I18n
 from .market_engine import PhaseState, build_upcoming_events, compute_phase_state
-from .notification_backend import NotificationBackend, SlotName, StateFile, StateStore, build_backend, sync_messages
+from .notification_backend import (
+    NotificationBackend,
+    SlotName,
+    StateFile,
+    StateStore,
+    WebhookGoneError,
+    build_backend,
+    sync_messages,
+)
 from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
 
 logger = logging.getLogger("market_pulse_bot")
@@ -94,41 +102,47 @@ async def async_run(args: argparse.Namespace) -> int:
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0)) as client:
         backend = build_backend(settings, client)
-        if not args.loop:
-            await run_incident_check_once(exchanges, settings.manual_incidents_path, incidents, client)
-            _, failures = await render_tick(
-                exchanges, schedules, incidents, i18n, display_tz, settings,
-                backend, state_store, state, last_sent, loop_mode=False
-            )
-            return 1 if failures else 0
-
-        detector = asyncio.create_task(
-            run_halt_detector_loop(
-                exchanges, settings.manual_incidents_path, incidents,
-                args.incident_interval, stop_event, client
-            )
-        )
-        deadline = running_loop.time() + args.max_runtime if args.max_runtime else None
         try:
-            while not stop_event.is_set():
-                state, _ = await render_tick(
+            if not args.loop:
+                await run_incident_check_once(exchanges, settings.manual_incidents_path, incidents, client)
+                _, failures = await render_tick(
                     exchanges, schedules, incidents, i18n, display_tz, settings,
-                    backend, state_store, state, last_sent, loop_mode=True
+                    backend, state_store, state, last_sent, loop_mode=False
                 )
-                timeout = float(args.interval)
-                if deadline is not None:
-                    remaining = deadline - running_loop.time()
-                    if remaining <= 0:
-                        logger.info("--max-runtime reached; stopping")
-                        break
-                    timeout = min(timeout, remaining)
-                try:
-                    await asyncio.wait_for(stop_event.wait(), timeout=timeout)
-                except TimeoutError:
-                    pass
-        finally:
-            stop_event.set()
-            await detector
+                return 1 if failures else 0
+
+            detector = asyncio.create_task(
+                run_halt_detector_loop(
+                    exchanges, settings.manual_incidents_path, incidents,
+                    args.incident_interval, stop_event, client
+                )
+            )
+            deadline = running_loop.time() + args.max_runtime if args.max_runtime else None
+            try:
+                while not stop_event.is_set():
+                    state, _ = await render_tick(
+                        exchanges, schedules, incidents, i18n, display_tz, settings,
+                        backend, state_store, state, last_sent, loop_mode=True
+                    )
+                    timeout = float(args.interval)
+                    if deadline is not None:
+                        remaining = deadline - running_loop.time()
+                        if remaining <= 0:
+                            logger.info("--max-runtime reached; stopping")
+                            break
+                        timeout = min(timeout, remaining)
+                    try:
+                        await asyncio.wait_for(stop_event.wait(), timeout=timeout)
+                    except TimeoutError:
+                        pass
+            finally:
+                stop_event.set()
+                await detector
+        except WebhookGoneError as exc:
+            # Retrying cannot help until the configuration changes: stop and
+            # fail visibly instead of erroring on every tick.
+            logger.error("stopping: %s", exc)
+            return 1
     return 0
 
 
