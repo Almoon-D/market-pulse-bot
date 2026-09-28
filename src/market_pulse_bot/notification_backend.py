@@ -120,6 +120,11 @@ def _header_seconds(response: httpx.Response, name: str) -> float | None:
         return None
 
 
+def _host(url: str) -> str:
+    """Only the host: webhook and bot URLs carry secret tokens in their path."""
+    return urlsplit(url).netloc
+
+
 async def request_with_backoff(
     client: httpx.AsyncClient,
     method: str,
@@ -148,10 +153,10 @@ async def request_with_backoff(
             wait = _header_seconds(response, "Retry-After")
         if wait is None:
             wait = delay
-        logger.warning("429 from %s; waiting %.1fs before retry %d/%d", url, wait, attempt + 1, retries)
+        logger.warning("429 from %s; waiting %.1fs before retry %d/%d", _host(url), wait, attempt + 1, retries)
         await asyncio.sleep(wait)
         delay = min(delay * 2, 30.0)
-    raise RuntimeError(f"rate limit persisted after {retries} retries: {url}")
+    raise RuntimeError(f"rate limit persisted after {retries} retries: {_host(url)}")
 
 
 class NotificationBackend(ABC):

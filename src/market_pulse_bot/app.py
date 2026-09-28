@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import datetime as dt
 import logging
+import re
 import signal
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -21,6 +22,22 @@ from .notification_backend import NotificationBackend, SlotName, StateFile, Stat
 from .text_formatter import MessagePayload, PayloadTooLargeError, build_all_payloads
 
 logger = logging.getLogger("market_pulse_bot")
+
+# Discord webhook and Telegram bot URLs carry their secret token in the path.
+_SECRET_PATTERNS = (
+    (re.compile(r"(/webhooks/\d+/)[^/?\s'\"]+"), r"\1***"),
+    (re.compile(r"(/bot)[^/\s'\"]+"), r"\1***"),
+)
+
+
+class RedactingFormatter(logging.Formatter):
+    """Masks webhook and bot tokens anywhere in a log line, tracebacks included."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        text = super().format(record)
+        for pattern, replacement in _SECRET_PATTERNS:
+            text = pattern.sub(replacement, text)
+        return text
 
 
 async def render_tick(
@@ -129,7 +146,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    handler = logging.StreamHandler()
+    handler.setFormatter(RedactingFormatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
+    # httpx logs every request URL at INFO; not useful, and the URLs are secret.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     parser = build_parser()
     args = parser.parse_args()
     if args.incident_interval < 60:

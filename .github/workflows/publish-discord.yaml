@@ -61,6 +61,11 @@ jobs:
       MPB_DISPLAY_TIMEZONE: Europe/Madrid
       MPB_LANGUAGE: es
     steps:
+      # GitHub only masks the secret as a whole; also mask the token part so
+      # it can never show up in a log if a URL is rebuilt or printed.
+      - name: Mask the webhook token
+        run: echo "::add-mask::${MPB_DISCORD_WEBHOOK_URL##*/}"
+
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6

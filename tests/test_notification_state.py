@@ -340,3 +340,22 @@ def test_discord_uses_the_versioned_api_even_for_an_unversioned_webhook_url() ->
 
     asyncio.run(run())
     assert seen == ["https://discord.com/api/v10/" + "webhooks/123/fixture?wait=true"]
+
+
+def test_rate_limit_logs_never_include_the_url_path(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    async def fake_sleep(seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr("market_pulse_bot.notification_backend.asyncio.sleep", fake_sleep)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, headers={"Retry-After": "1"})
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            await request_with_backoff(client, "POST", "https://fixture.invalid/webhooks/1/secret-token", retries=2)
+
+    with caplog.at_level("WARNING"), pytest.raises(RuntimeError) as exc:
+        asyncio.run(run())
+    assert "secret-token" not in caplog.text
+    assert "secret-token" not in str(exc.value)
