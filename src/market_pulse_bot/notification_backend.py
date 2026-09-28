@@ -105,6 +105,10 @@ class MessageNotFoundError(RuntimeError):
     pass
 
 
+class WebhookGoneError(RuntimeError):
+    """The webhook itself is deleted or its token is invalid: retrying cannot help."""
+
+
 # Longest single rate-limit pause. The render loop runs every 30 s, so a
 # longer block would only stall it; the next pass retries instead.
 MAX_RATE_LIMIT_WAIT = 60.0
@@ -171,6 +175,23 @@ class NotificationBackend(ABC):
         """Delete a published message. A message that is already gone counts as deleted."""
 
 
+DISCORD_UNKNOWN_WEBHOOK = 10015
+
+
+def _raise_if_webhook_gone(response: httpx.Response) -> None:
+    """Tell a deleted webhook or a bad token apart from a deleted message,
+    which Discord also answers with 404."""
+    if response.status_code in {401, 403}:
+        raise WebhookGoneError("Discord rejected the webhook token; update MPB_DISCORD_WEBHOOK_URL")
+    if response.status_code == 404:
+        try:
+            code = response.json().get("code")
+        except (ValueError, AttributeError):
+            return
+        if code == DISCORD_UNKNOWN_WEBHOOK:
+            raise WebhookGoneError("the Discord webhook no longer exists; update MPB_DISCORD_WEBHOOK_URL")
+
+
 class DiscordBackend(NotificationBackend):
     def __init__(self, webhook_url: str, client: httpx.AsyncClient) -> None:
         parsed = urlsplit(webhook_url.rstrip("/"))
@@ -188,6 +209,7 @@ class DiscordBackend(NotificationBackend):
             self._client, "POST", f"{self._base_url}?wait=true",
             json={"embeds": [payload.discord_embed]}
         )
+        _raise_if_webhook_gone(response)
         response.raise_for_status()
         return DiscordRef(backend="discord", message_id=str(response.json()["id"]))
 
@@ -198,6 +220,7 @@ class DiscordBackend(NotificationBackend):
             raise ValueError("Discord payload missing embed")
         url = self._message_url(reference.message_id)
         response = await request_with_backoff(self._client, "PATCH", url, json={"embeds": [payload.discord_embed]})
+        _raise_if_webhook_gone(response)
         if response.status_code == 404:
             raise MessageNotFoundError(f"Discord message {reference.message_id} not found")
         response.raise_for_status()
@@ -207,6 +230,7 @@ class DiscordBackend(NotificationBackend):
         if not isinstance(reference, DiscordRef):
             raise TypeError(f"Discord backend cannot delete {type(reference).__name__} reference")
         response = await request_with_backoff(self._client, "DELETE", self._message_url(reference.message_id))
+        _raise_if_webhook_gone(response)
         if response.status_code != 404:
             response.raise_for_status()
 
@@ -399,6 +423,8 @@ async def sync_messages(
             logger.warning("%s missing; re-posting it and every message after it", slot)
             first_missing = index
             break
+        except WebhookGoneError:
+            raise
         except Exception:
             failures += 1
             logger.exception("notification update failed for %s", slot)
@@ -412,6 +438,8 @@ async def sync_messages(
         if reference is not None and reference.backend == state.backend:
             try:
                 await backend.delete(reference)
+            except WebhookGoneError:
+                raise
             except Exception:
                 logger.exception("could not delete %s; retrying on the next update", slot)
                 return state, failures + 1
@@ -422,6 +450,8 @@ async def sync_messages(
     for slot, payload in zip(SLOT_ORDER[first_missing:], payloads[first_missing:], strict=True):
         try:
             reference = await backend.publish(payload)
+        except WebhookGoneError:
+            raise
         except Exception:
             logger.exception("could not publish %s; retrying on the next update", slot)
             return state, failures + 1

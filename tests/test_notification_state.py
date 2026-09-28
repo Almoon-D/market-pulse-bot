@@ -17,6 +17,7 @@ from market_pulse_bot.notification_backend import (
     StateStore,
     TelegramBackend,
     TelegramRef,
+    WebhookGoneError,
     request_with_backoff,
     sync_messages,
 )
@@ -359,3 +360,47 @@ def test_rate_limit_logs_never_include_the_url_path(monkeypatch: pytest.MonkeyPa
         asyncio.run(run())
     assert "secret-token" not in caplog.text
     assert "secret-token" not in str(exc.value)
+
+
+
+@pytest.mark.parametrize(
+    ("status", "body", "expected"),
+    [
+        (404, {"message": "Unknown Webhook", "code": 10015}, WebhookGoneError),
+        (401, {"message": "Invalid Webhook Token", "code": 50027}, WebhookGoneError),
+        (404, {"message": "Unknown Message", "code": 10008}, MessageNotFoundError),
+    ],
+)
+def test_discord_tells_a_deleted_webhook_from_a_deleted_message(status: int, body: dict, expected: type) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(status, json=body)
+
+    async def run() -> None:
+        backend, client = _discord(handler)
+        async with client:
+            await backend.update(DiscordRef(backend="discord", message_id="55"), PAYLOADS[0])
+
+    with pytest.raises(expected):
+        asyncio.run(run())
+
+
+def test_discord_publish_to_a_deleted_webhook_raises_webhook_gone() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"message": "Unknown Webhook", "code": 10015})
+
+    async def run() -> None:
+        backend, client = _discord(handler)
+        async with client:
+            await backend.publish(PAYLOADS[0])
+
+    with pytest.raises(WebhookGoneError):
+        asyncio.run(run())
+
+
+def test_sync_stops_on_a_gone_webhook_instead_of_counting_a_failure(tmp_path: Path) -> None:
+    class GoneBackend(FakeBackend):
+        async def update(self, reference, payload):
+            raise WebhookGoneError("gone")
+
+    with pytest.raises(WebhookGoneError):
+        _sync(GoneBackend(), StateStore(tmp_path / "state.json"), _full_state())
